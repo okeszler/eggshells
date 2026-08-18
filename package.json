@@ -1,0 +1,14 @@
+{
+  "name": "eggshells-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev src",
+    "deploy": "wrangler pages deploy src --project-name=eggshells",
+    "db:init": "wrangler d1 execute eggshells-db --remote --file=migrations/0001_init.sql",
+    "db:seed": "wrangler d1 execute eggshells-db --remote --file=migrations/0002_seed_patterns.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

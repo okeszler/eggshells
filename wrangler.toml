@@ -1,0 +1,13 @@
+name = "eggshells-app"
+compatibility_date = "2025-01-01"
+pages_build_output_dir = "src"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "eggshells-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# APP_PIN und COOKIE_SECRET NICHT hier eintragen (landet sonst im Git-Repo).
+# Stattdessen als Secrets setzen:
+#   wrangler pages secret put APP_PIN --project-name=eggshells
+#   wrangler pages secret put COOKIE_SECRET --project-name=eggshells
