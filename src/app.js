@@ -444,7 +444,7 @@ function render() {
 
   document.getElementById("app").innerHTML = `
     <header>
-      <h1>Leave the eggshells</h1>
+      <h1>eggshells</h1>
       <p>Wissen, Skills und Selbstfürsorge für Beziehungen mit PTBS/BPD-Dynamik</p>
     </header>
     ${content}
