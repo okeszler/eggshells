@@ -473,4 +473,10 @@ document.getElementById("pin-input").addEventListener("keydown", (e) => {
   if (e.key === "Enter") submitPin();
 });
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
+
 boot();
