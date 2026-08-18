@@ -5,7 +5,7 @@ pages_build_output_dir = "src"
 [[d1_databases]]
 binding = "DB"
 database_name = "eggshells-db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "73a8c666-180b-47e6-afe6-1b9e19c6cb74"
 
 # APP_PIN und COOKIE_SECRET NICHT hier eintragen (landet sonst im Git-Repo).
 # Stattdessen als Secrets setzen:
