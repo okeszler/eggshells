@@ -98,6 +98,13 @@ async function loadAll() {
 
 // ---------- Wissen ----------
 
+const CHAPTERS = [
+  { title: "Beziehungsmuster", categories: ["Borderline", "Kommunikation", "Emotionsregulation", "Beziehungszyklus", "Abwehrmechanismus"] },
+  { title: "Trauma & Bindung", categories: ["Trauma-Wissenschaft", "Bindungstheorie"] },
+  { title: "DBT & Skills", categories: ["DBT-Basics", "Skill für Partner", "Skill für Betroffene"] },
+  { title: "Selbstfürsorge", categories: ["Selbstfürsorge"] },
+];
+
 function patternCard(p) {
   return `
     <div class="card">
@@ -116,7 +123,31 @@ function patternCard(p) {
 
 function renderWissen() {
   if (!state.patterns.length) return `<div class="placeholder">Lädt Muster…</div>`;
-  return state.patterns.map(patternCard).join("");
+
+  const byCategory = {};
+  state.patterns.forEach((p) => {
+    if (!byCategory[p.category]) byCategory[p.category] = [];
+    byCategory[p.category].push(p);
+  });
+
+  const covered = new Set();
+  let html = "";
+  CHAPTERS.forEach((chapter) => {
+    const cards = chapter.categories.flatMap((c) => byCategory[c] || []);
+    chapter.categories.forEach((c) => covered.add(c));
+    if (!cards.length) return;
+    html += `<h2 class="chapter-title">${escapeHtml(chapter.title)}</h2>`;
+    html += cards.map(patternCard).join("");
+  });
+
+  const leftoverCategories = Object.keys(byCategory).filter((c) => !covered.has(c));
+  if (leftoverCategories.length) {
+    const leftoverCards = leftoverCategories.flatMap((c) => byCategory[c]);
+    html += `<h2 class="chapter-title">Weiteres</h2>`;
+    html += leftoverCards.map(patternCard).join("");
+  }
+
+  return html;
 }
 
 // ---------- Log ----------

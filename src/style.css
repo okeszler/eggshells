@@ -365,6 +365,21 @@ nav.tabs button:disabled {
   margin: 18px 0 8px;
 }
 
+.chapter-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  margin: 28px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--accent-soft);
+}
+
+.chapter-title:first-child {
+  margin-top: 0;
+}
+
 .step-num {
   display: inline-flex;
   align-items: center;
