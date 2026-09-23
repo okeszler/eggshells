@@ -19,7 +19,7 @@ INSERT INTO skills (slug, title, stage, description, example_phrases, works_when
 ('stimmungsbruch-humor', 'Bewusster Stimmungsbruch mit Leichtigkeit', 'frueh',
  'Eine wohldosierte, liebevolle Bemerkung unterbricht den beginnenden Automatismus, bevor er Fahrt aufnimmt. Funktioniert nur, wenn genug Vertrauen und Leichtigkeit in der Beziehung vorhanden ist.',
  '["Okay, ich hol grad Wasser, bevor das hier Level Weltkrieg erreicht.", "Moment, ich muss kurz meinen Kampfmodus ausschalten.", "Sollen wir das nochmal von vorn versuchen, diesmal mit weniger Drama?"]',
- 'Ganz frueh, bei Partner:innen, die auf Humor in angespannten Momenten grundsätzlich gut reagieren. Nie erzwingen, nur einsetzen, wenn es sich stimmig anfühlt.',
+ 'Ganz früh, bei Partner:innen, die auf Humor in angespannten Momenten grundsätzlich gut reagieren. Nie erzwingen, nur einsetzen, wenn es sich stimmig anfühlt.',
  'Kann als Nicht-ernst-nehmen ankommen, besonders wenn das Thema für die andere Person schon schwer ist oder die Anspannung schon zu hoch ist.', 6),
 
 ('bedarfsfrage-statt-rechtfertigung', 'Nach dem eigentlichen Bedürfnis fragen', 'mitte',
@@ -48,6 +48,6 @@ INSERT INTO skills (slug, title, stage, description, example_phrases, works_when
 
 ('notfallkontakt', 'Einen Notfallkontakt als Rückhalt haben', 'spaet',
  'Eine Person außerhalb der Beziehung, die du in einem eskalierten Moment kurz anrufen oder anschreiben kannst, nicht um sie gegen die andere Person auszuspielen, sondern um selbst runterzukommen.',
- '["Ich ruf kurz jemanden an, bin gleich wieder da.", "Ich schreib grad kurz mit jemandem, das hilft mir runterzukommen.", "Ich brauch grad eine andere Stimme von aussen."]',
+ '["Ich ruf kurz jemanden an, bin gleich wieder da.", "Ich schreib grad kurz mit jemandem, das hilft mir runterzukommen.", "Ich brauch grad eine andere Stimme von außen."]',
  'Wenn eine verlässliche Person dafür wirklich verfügbar ist und der Kontakt der eigenen Regulation dient, nicht dem Sammeln von Verbündeten.',
  'Wenn er genutzt wird, um über die andere Person herzuziehen, oder zum Ersatz dafür wird, das Thema je direkt anzusprechen.', 11);

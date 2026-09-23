@@ -1,9 +1,17 @@
+const ICONS = {
+  wissen: '<path d="M4 19.5V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h13"/>',
+  skills: '<path d="M4 5h16v11H10l-5 4v-4H4z"/><path d="M8 9.5h8M8 12.5h5"/>',
+  log: '<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 19h4"/>',
+  selfcare: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/>',
+  krise: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v6"/><path d="M12 16.5v.01"/>',
+};
+
 const TABS = [
-  { id: "wissen", label: "Wissen" },
-  { id: "skills", label: "Skills" },
-  { id: "log", label: "Log" },
-  { id: "selfcare", label: "Selbstfürsorge" },
-  { id: "krise", label: "Krise" },
+  { id: "wissen", label: "Wissen", title: "Wissen" },
+  { id: "skills", label: "Skills", title: "Skills" },
+  { id: "log", label: "Log", title: "Log" },
+  { id: "selfcare", label: "Fürsorge", title: "Selbstfürsorge" },
+  { id: "krise", label: "Krise", title: "Krisenplan" },
 ];
 
 const MOODS = [1, 2, 3, 4, 5];
@@ -12,6 +20,9 @@ const SELFCARE_PRESETS = ["Gym", "Spaziergang", "Freund:in angerufen", "Musik", 
 
 let state = {
   tab: "wissen",
+  wissenChapter: null,
+  skillStage: "frueh",
+  logPatternsOpen: false,
   patterns: [],
   skills: [],
   entries: [],
@@ -136,24 +147,34 @@ function renderWissen() {
     byCategory[p.category].push(p);
   });
 
-  const covered = new Set();
-  let html = "";
-  CHAPTERS.forEach((chapter) => {
-    const cards = chapter.categories.flatMap((c) => byCategory[c] || []);
-    chapter.categories.forEach((c) => covered.add(c));
-    if (!cards.length) return;
-    html += `<h2 class="chapter-title">${escapeHtml(chapter.title)}</h2>`;
-    html += cards.map(patternCard).join("");
-  });
-
+  const covered = new Set(CHAPTERS.flatMap((c) => c.categories));
   const leftoverCategories = Object.keys(byCategory).filter((c) => !covered.has(c));
-  if (leftoverCategories.length) {
-    const leftoverCards = leftoverCategories.flatMap((c) => byCategory[c]);
-    html += `<h2 class="chapter-title">Weiteres</h2>`;
-    html += leftoverCards.map(patternCard).join("");
-  }
+  const chapters = leftoverCategories.length
+    ? [...CHAPTERS, { title: "Weiteres", categories: leftoverCategories }]
+    : CHAPTERS;
+  const withCards = chapters
+    .map((chapter) => ({ ...chapter, cards: chapter.categories.flatMap((c) => byCategory[c] || []) }))
+    .filter((chapter) => chapter.cards.length);
 
-  return html;
+  const active = state.wissenChapter;
+  const filter = `
+    <div class="filter-chips">
+      <button class="filter-chip ${active ? "" : "selected"}" onclick="setWissenChapter(null)">Alle <span>${state.patterns.length}</span></button>
+      ${withCards
+        .map(
+          (c) => `<button class="filter-chip ${active === c.title ? "selected" : ""}" onclick="setWissenChapter('${escapeHtml(c.title)}')">${escapeHtml(c.title)} <span>${c.cards.length}</span></button>`
+        )
+        .join("")}
+    </div>
+  `;
+
+  const visible = active ? withCards.filter((c) => c.title === active) : withCards;
+  return (
+    filter +
+    visible
+      .map((chapter) => `<h2 class="chapter-title">${escapeHtml(chapter.title)}</h2>${chapter.cards.map(patternCard).join("")}`)
+      .join("")
+  );
 }
 
 // ---------- Skills ----------
@@ -171,12 +192,12 @@ const STAGES = [
 
 function skillCard(s) {
   return `
-    <div class="card">
+    <div class="card skill-card stage-${s.stage}">
       <h3>${escapeHtml(s.title)}</h3>
-      <p class="summary">${escapeHtml(s.description)}</p>
       <ul class="phrases">
         ${s.example_phrases.map((ph) => `<li>${escapeHtml(ph)}</li>`).join("")}
       </ul>
+      <p class="summary">${escapeHtml(s.description)}</p>
       <details>
         <summary>Wann hilft's, wann nicht?</summary>
         <div class="detail-block"><strong>Funktioniert, wenn</strong>${escapeHtml(s.works_when)}</div>
@@ -189,16 +210,22 @@ function skillCard(s) {
 function renderSkills() {
   if (!state.skills.length) return `<div class="placeholder">Lädt Skills…</div>`;
 
-  return STAGES.map((stage) => {
-    const cards = state.skills.filter((s) => s.stage === stage.id);
-    if (!cards.length) return "";
-    return `
-      <h2 class="chapter-title">${escapeHtml(stage.title)}</h2>
-      <p class="stage-intro">${escapeHtml(stage.intro)}</p>
-      ${stage.note ? `<div class="stage-note">${escapeHtml(stage.note)}</div>` : ""}
-      ${cards.map(skillCard).join("")}
-    `;
-  }).join("");
+  const stage = STAGES.find((st) => st.id === state.skillStage) || STAGES[0];
+  const cards = state.skills.filter((s) => s.stage === stage.id);
+  return `
+    <div class="stage-switch" role="tablist">
+      ${STAGES.map(
+        (st) => `<button role="tab" class="stage-btn stage-${st.id} ${st.id === stage.id ? "selected" : ""}" onclick="setSkillStage('${st.id}')">${escapeHtml(st.title)}</button>`
+      ).join("")}
+    </div>
+    <p class="stage-intro">${escapeHtml(stage.intro)}</p>
+    ${
+      stage.note
+        ? `<div class="stage-note">${escapeHtml(stage.note)} <button class="link-btn" onclick="setTab('krise')">Zum Krisenplan →</button></div>`
+        : ""
+    }
+    ${cards.map(skillCard).join("")}
+  `;
 }
 
 // ---------- Log ----------
@@ -213,17 +240,31 @@ function moodPicker(field, value) {
   `;
 }
 
-function patternCheckboxes() {
-  return state.patterns
-    .map(
-      (p) => `
-      <label class="pattern-check">
-        <input type="checkbox" ${state.logForm.pattern_ids.includes(p.id) ? "checked" : ""} onchange="togglePattern(${p.id})" />
-        ${escapeHtml(p.title)}
-      </label>
-    `
-    )
-    .join("");
+function patternPicker() {
+  const selected = state.logForm.pattern_ids;
+  const groups = CHAPTERS.map((c) => ({
+    title: c.title,
+    items: state.patterns.filter((p) => c.categories.includes(p.category)),
+  })).filter((g) => g.items.length);
+  return `
+    <details class="pattern-picker" ${state.logPatternsOpen ? "open" : ""} ontoggle="setLogPatternsOpen(this.open)">
+      <summary>Muster zuordnen${selected.length ? ` <span class="count">${selected.length} ausgewählt</span>` : ""}</summary>
+      ${groups
+        .map(
+          (g) => `
+        <div class="picker-group">${escapeHtml(g.title)}</div>
+        <div class="preset-grid">
+          ${g.items
+            .map(
+              (p) => `<button type="button" class="preset-btn ${selected.includes(p.id) ? "selected" : ""}" onclick="togglePattern(${p.id})">${escapeHtml(p.title)}</button>`
+            )
+            .join("")}
+        </div>
+      `
+        )
+        .join("")}
+    </details>
+  `;
 }
 
 function renderLogForm() {
@@ -242,7 +283,7 @@ function renderLogForm() {
       <label class="field-label">Stimmung nachher</label>
       ${moodPicker("mood_after", state.logForm.mood_after)}
 
-      ${state.patterns.length ? `<label class="field-label">Erkannte Muster</label><div class="pattern-checks">${patternCheckboxes()}</div>` : ""}
+      ${state.patterns.length ? `<label class="field-label">Erkannte Muster</label>${patternPicker()}` : ""}
 
       <button class="primary-btn" onclick="submitEntry()">Eintrag speichern</button>
     </div>
@@ -263,6 +304,11 @@ function entryCard(e) {
       ${titles.length ? `<div class="chips">${titles.map((t) => `<span class="chip">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
     </div>
   `;
+}
+
+function formatDate(isoDate) {
+  const [y, m, d] = String(isoDate).split("-");
+  return y && m && d ? `${d}.${m}.${y}` : isoDate;
 }
 
 function formatDateTime(iso) {
@@ -309,7 +355,7 @@ function selfcareCard(s) {
   return `
     <div class="card entry-card">
       <div class="entry-head">
-        <span class="entry-date">${s.date}</span>
+        <span class="entry-date">${formatDate(s.date)}</span>
         <button class="delete-btn" onclick="deleteSelfcare(${s.id})">✕</button>
       </div>
       <p class="entry-note"><strong>${escapeHtml(s.action)}</strong>${s.note ? " — " + escapeHtml(s.note) : ""}</p>
@@ -327,7 +373,7 @@ function renderSelfcare() {
 // ---------- Krise ----------
 
 function isPhone(v) {
-  return /^[+\d][\d\s()-]{3,}$/.test(v.trim());
+  return /^[+\d][\d\s()\/-]{2,}$/.test(v.trim());
 }
 
 function renderKrise() {
@@ -405,6 +451,25 @@ function renderCrisisContactForm() {
 }
 
 // ---------- Actions ----------
+
+function setWissenChapter(title) {
+  state.wissenChapter = title;
+  render();
+  window.scrollTo(0, 0);
+}
+window.setWissenChapter = setWissenChapter;
+
+function setSkillStage(id) {
+  state.skillStage = id;
+  render();
+  window.scrollTo(0, 0);
+}
+window.setSkillStage = setSkillStage;
+
+function setLogPatternsOpen(open) {
+  state.logPatternsOpen = open;
+}
+window.setLogPatternsOpen = setLogPatternsOpen;
 
 function setMood(field, value) {
   state.logForm[field] = state.logForm[field] === value ? null : value;
@@ -509,7 +574,10 @@ function renderTabs() {
     <nav class="tabs">
       ${TABS.map(
         (t) => `
-        <button class="${state.tab === t.id ? "active" : ""}" onclick="setTab('${t.id}')">${t.label}</button>
+        <button class="tab-${t.id} ${state.tab === t.id ? "active" : ""}" onclick="setTab('${t.id}')">
+          <svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[t.id]}</svg>
+          <span>${t.label}</span>
+        </button>
       `
       ).join("")}
     </nav>
@@ -526,9 +594,9 @@ function render() {
   }[state.tab]();
 
   document.getElementById("app").innerHTML = `
-    <header>
-      <h1>eggshells</h1>
-      <p>Wissen, Skills und Selbstfürsorge für Beziehungen mit PTBS/BPD-Dynamik</p>
+    <header class="topbar">
+      <span class="brand">eggshells</span>
+      <h1>${escapeHtml(TABS.find((t) => t.id === state.tab).title)}</h1>
     </header>
     ${content}
     ${renderTabs()}
@@ -538,6 +606,7 @@ function render() {
 function setTab(id) {
   state.tab = id;
   render();
+  window.scrollTo(0, 0);
 }
 window.setTab = setTab;
 

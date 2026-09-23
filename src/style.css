@@ -11,7 +11,7 @@
   --bg: #fbf6f6;
   --surface: #ffffff;
   --text: #322f4d;
-  --text-muted: #857f9c;
+  --text-muted: #6d6687;
   --accent: var(--indigo);
   --accent-strong: var(--navy);
   --accent-soft: #ecebf6;
@@ -19,6 +19,10 @@
   --danger: var(--rose);
   --border: #ecdfe2;
   --radius: 10px;
+  --stage-frueh: var(--skyblue);
+  --stage-mitte: var(--dustyrose);
+  --stage-spaet: var(--rose);
+  --crisis: var(--rose);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -33,6 +37,8 @@
     --on-accent: #1c1a30;
     --danger: var(--dustyrose);
     --border: #3a3760;
+    --stage-spaet: #e0677b;
+    --crisis: #e98495;
   }
 }
 
@@ -48,19 +54,26 @@ body {
 #app {
   max-width: 480px;
   margin: 0 auto;
-  padding: 16px 16px 90px;
+  padding: calc(12px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom));
 }
 
-header h1 {
-  font-size: 20px;
+.topbar {
+  margin: 4px 0 16px;
+}
+
+.topbar .brand {
+  display: block;
+  font-size: 12px;
   font-weight: 600;
-  margin: 12px 0 4px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
-header p {
-  color: var(--text-muted);
-  font-size: 14px;
-  margin: 0 0 16px;
+.topbar h1 {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 2px 0 0;
 }
 
 nav.tabs {
@@ -73,15 +86,30 @@ nav.tabs {
   border-top: 1px solid var(--border);
   max-width: 480px;
   margin: 0 auto;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 nav.tabs button {
   flex: 1;
-  padding: 12px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 9px 2px 8px;
   border: none;
   background: none;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
+}
+
+nav.tabs svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 nav.tabs button.active {
@@ -89,8 +117,12 @@ nav.tabs button.active {
   font-weight: 600;
 }
 
-nav.tabs button:disabled {
-  opacity: 0.4;
+nav.tabs button.active svg {
+  stroke-width: 2.2;
+}
+
+nav.tabs button.tab-krise {
+  color: var(--crisis);
 }
 
 .card {
@@ -272,19 +304,6 @@ nav.tabs button:disabled {
   background: var(--accent-soft);
 }
 
-.pattern-checks {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.pattern-check {
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .preset-grid {
   display: flex;
   flex-wrap: wrap;
@@ -439,4 +458,134 @@ nav.tabs button:disabled {
 
 .phrases li::after {
   content: "“";
+}
+
+/* Wissen: Kapitel-Filter */
+.filter-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 -16px 8px;
+  padding: 0 16px 4px;
+  scrollbar-width: none;
+}
+
+.filter-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chip {
+  flex: none;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.filter-chip span {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+.filter-chip.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.filter-chip.selected span {
+  color: inherit;
+  opacity: 0.8;
+}
+
+/* Skills: Stufen-Umschalter */
+.stage-switch {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+
+.stage-btn {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.stage-btn.selected {
+  color: #fff;
+}
+
+.stage-btn.stage-frueh.selected { background: var(--stage-frueh); color: #1c1a30; }
+.stage-btn.stage-mitte.selected { background: var(--stage-mitte); color: #1c1a30; }
+.stage-btn.stage-spaet.selected { background: var(--stage-spaet); }
+
+.skill-card {
+  border-left: 4px solid var(--border);
+}
+
+.skill-card.stage-frueh { border-left-color: var(--stage-frueh); }
+.skill-card.stage-mitte { border-left-color: var(--stage-mitte); }
+.skill-card.stage-spaet { border-left-color: var(--stage-spaet); }
+
+.skill-card .phrases {
+  margin-top: 10px;
+}
+
+.stage-note .link-btn {
+  display: block;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+/* Log: Muster-Auswahl */
+.pattern-picker {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+.pattern-picker summary {
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.pattern-picker .count {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.picker-group {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin: 14px 0 6px;
+}
+
+.stage-note {
+  border-left-color: var(--stage-spaet);
+}
+
+.pattern-picker .preset-btn {
+  text-align: left;
+}
+
+.filter-chips + .chapter-title {
+  margin-top: 16px;
 }
