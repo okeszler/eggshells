@@ -7,10 +7,16 @@ Cloudflare Pages + D1 (SQLite), Vanilla JS Frontend – gleiches Muster wie gym-
 
 ## Status
 - ✅ Wissen & Mustererkennung: Datenmodell, Seed-Daten (6 Muster), API, Frontend-Liste mit Aufklapp-Details
+- ✅ Skills: erprobte Sätze & Werkzeuge nach Eskalationsstufe (Früh / Mitte / Spät), Tabelle `skills` (Migration `0007_skills.sql`), API `/api/skills`, eigener Tab mit sichtbaren Beispielsätzen und aufklappbarem "wann hilft's / wann nicht"
 - ✅ Log: Formular (Zeitpunkt, Notiz, Stimmung vorher/nachher, Musterzuordnung) + Liste + Löschen
 - ✅ Selbstfürsorge: Formular (Datum, Aktion per Preset oder frei, Notiz) + Liste + Löschen
 - ✅ Krisenmodus: Schritte + Kontakte, im "Bearbeiten"-Modus selbst befüllbar (Inhalte bewusst nicht Teil der Seed-Daten)
 - ✅ PIN-Schutz für die ganze App (Cookie-basiert, `APP_PIN` + `COOKIE_SECRET` als Cloudflare-Secrets)
+
+## Nächste Schritte
+- Log mit Skills verknüpfen: pro Eintrag festhalten, welcher Skill eingesetzt wurde und ob er gewirkt hat, damit sich zeigt, was in der Praxis wirklich funktioniert
+- Eigene Skills in der App anlegen/bearbeiten (analog zum Bearbeiten-Modus im Krisen-Tab), statt nur über Migrationen
+- Im Krisen-Tab auf die Stufe "Spät" (physischer Ausstieg) verlinken
 
 ## Setup
 
@@ -21,6 +27,8 @@ wrangler d1 create eggshells-db
 # database_id aus der Ausgabe in wrangler.toml eintragen
 npm run db:init
 npm run db:seed
+# danach die übrigen Migrationen der Reihe nach einspielen (0003 … 0007), z.B.:
+wrangler d1 execute eggshells-db --remote --file=migrations/0007_skills.sql
 wrangler pages secret put APP_PIN --project-name=eggshells
 wrangler pages secret put COOKIE_SECRET --project-name=eggshells
 npm run deploy

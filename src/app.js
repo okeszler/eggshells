@@ -1,5 +1,6 @@
 const TABS = [
   { id: "wissen", label: "Wissen" },
+  { id: "skills", label: "Skills" },
   { id: "log", label: "Log" },
   { id: "selfcare", label: "Selbstfürsorge" },
   { id: "krise", label: "Krise" },
@@ -12,6 +13,7 @@ const SELFCARE_PRESETS = ["Gym", "Spaziergang", "Freund:in angerufen", "Musik", 
 let state = {
   tab: "wissen",
   patterns: [],
+  skills: [],
   entries: [],
   selfcare: [],
   crisis: { steps: [], contacts: [] },
@@ -83,13 +85,15 @@ async function submitPin() {
 // ---------- Data loading ----------
 
 async function loadAll() {
-  const [patterns, entries, selfcare, crisis] = await Promise.all([
+  const [patterns, skills, entries, selfcare, crisis] = await Promise.all([
     api("/api/patterns").then((r) => r.json()),
+    api("/api/skills").then((r) => r.json()),
     api("/api/entries").then((r) => r.json()),
     api("/api/selfcare").then((r) => r.json()),
     api("/api/crisis").then((r) => r.json()),
   ]);
   state.patterns = patterns;
+  state.skills = skills;
   state.entries = entries;
   state.selfcare = selfcare;
   state.crisis = crisis;
@@ -148,6 +152,51 @@ function renderWissen() {
   }
 
   return html;
+}
+
+// ---------- Skills ----------
+
+const STAGES = [
+  { id: "frueh", title: "Früh", intro: "Rechtzeitig bemerkt: aus dem Automatismus aussteigen, bevor es richtig losgeht." },
+  { id: "mitte", title: "Mitte", intro: "Der Streit läuft schon: benennen, was passiert, ohne neue Angriffsfläche zu bieten." },
+  {
+    id: "spaet",
+    title: "Spät",
+    intro: "Worte erreichen nichts mehr: Die Situation verlassen ist jetzt die beste Option.",
+    note: "Kurz rausgehen ist kein Beziehungsende. Es ist eine Pause für euch beide, keine Entscheidung über die Beziehung.",
+  },
+];
+
+function skillCard(s) {
+  return `
+    <div class="card">
+      <h3>${escapeHtml(s.title)}</h3>
+      <p class="summary">${escapeHtml(s.description)}</p>
+      <ul class="phrases">
+        ${s.example_phrases.map((ph) => `<li>${escapeHtml(ph)}</li>`).join("")}
+      </ul>
+      <details>
+        <summary>Wann hilft's, wann nicht?</summary>
+        <div class="detail-block"><strong>Funktioniert, wenn</strong>${escapeHtml(s.works_when)}</div>
+        <div class="detail-block"><strong>Funktioniert nicht, wenn</strong>${escapeHtml(s.fails_when)}</div>
+      </details>
+    </div>
+  `;
+}
+
+function renderSkills() {
+  if (!state.skills.length) return `<div class="placeholder">Lädt Skills…</div>`;
+
+  return STAGES.map((stage) => {
+    const cards = state.skills.filter((s) => s.stage === stage.id);
+    if (!cards.length) return "";
+    return `
+      <h2 class="chapter-title">${escapeHtml(stage.title)}</h2>
+      <p class="stage-intro">${escapeHtml(stage.intro)}</p>
+      ${stage.note ? `<div class="stage-note">${escapeHtml(stage.note)}</div>` : ""}
+      ${cards.map(skillCard).join("")}
+    `;
+  }).join("");
 }
 
 // ---------- Log ----------
@@ -468,6 +517,7 @@ function renderTabs() {
 function render() {
   const content = {
     wissen: renderWissen,
+    skills: renderSkills,
     log: renderLog,
     selfcare: renderSelfcare,
     krise: renderKrise,
