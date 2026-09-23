@@ -399,3 +399,44 @@ nav.tabs button:disabled {
   font-weight: 600;
   text-decoration: none;
 }
+
+/* Skills */
+.stage-intro {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: -4px 0 12px;
+}
+
+.stage-note {
+  font-size: 13px;
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.phrases {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.phrases li {
+  font-size: 14px;
+  font-style: italic;
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+
+.phrases li::before {
+  content: "„";
+}
+
+.phrases li::after {
+  content: "“";
+}
