@@ -87,7 +87,9 @@ async function submitPin() {
 async function loadAll() {
   const [patterns, skills, entries, selfcare, crisis] = await Promise.all([
     api("/api/patterns").then((r) => r.json()),
-    api("/api/skills").then((r) => r.json()),
+    // Skills separat abfangen: Fehlt die Tabelle noch (Migration 0007 nicht eingespielt),
+    // soll nur der Skills-Tab leer bleiben statt die ganze App zu blockieren.
+    api("/api/skills").then((r) => (r.ok ? r.json() : [])).catch(() => []),
     api("/api/entries").then((r) => r.json()),
     api("/api/selfcare").then((r) => r.json()),
     api("/api/crisis").then((r) => r.json()),
