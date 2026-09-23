@@ -6,7 +6,7 @@ App für Menschen in Beziehung mit PTBS/BPD-Partner:innen. Wissen, Skills, Selbs
 Cloudflare Pages + D1 (SQLite), Vanilla JS Frontend – gleiches Muster wie gym-tracker, putzplan, health-metrics-tracker. PIN-Schutz über signiertes Auth-Cookie (analog zu darlehen_violeta).
 
 ## Status
-- ✅ Wissen & Mustererkennung: Datenmodell, 46 Muster über alle Kategorien (Migration `0009` füllt vormals dünne Kategorien wie Borderline, Beziehungszyklus, Abwehrmechanismus, Kommunikation auf), API, Frontend-Liste mit Aufklapp-Details
+- ✅ Wissen & Mustererkennung: Datenmodell, 53 Muster über alle Kategorien (Migration `0009` füllt vormals dünne Kategorien auf, `0010` ergänzt PTBS-Kernsymptome: Intrusionen, Vermeidung, Übererregung, Schlaf, Trigger-Ketten, Jahrestage, negative Grundannahmen), API, Frontend-Liste mit Aufklapp-Details
 - ✅ Skills: erprobte Sätze & Werkzeuge nach Eskalationsstufe (Früh / Mitte / Spät), 11 Karten (Migrationen `0007`/`0008`), API `/api/skills`, eigener Tab mit sichtbaren Beispielsätzen und aufklappbarem "wann hilft's / wann nicht"
 - ✅ Log: Formular (Zeitpunkt, Notiz, Stimmung vorher/nachher, Musterzuordnung) + Liste + Löschen
 - ✅ Selbstfürsorge: Formular (Datum, Aktion per Preset oder frei, Notiz) + Liste + Löschen
@@ -28,8 +28,8 @@ wrangler d1 create eggshells-db
 # database_id aus der Ausgabe in wrangler.toml eintragen
 npm run db:init
 npm run db:seed
-# danach die übrigen Migrationen der Reihe nach einspielen (0003 … 0009), z.B.:
-wrangler d1 execute eggshells-db --remote --file=migrations/0009_expand_thin_categories.sql
+# danach die übrigen Migrationen der Reihe nach einspielen (0003 … 0010), z.B.:
+wrangler d1 execute eggshells-db --remote --file=migrations/0010_ptbs_symptoms.sql
 wrangler pages secret put APP_PIN --project-name=eggshells
 wrangler pages secret put COOKIE_SECRET --project-name=eggshells
 npm run deploy
