@@ -23,6 +23,8 @@
   --stage-mitte: var(--dustyrose);
   --stage-spaet: var(--rose);
   --crisis: var(--rose);
+  --evidence-strong: var(--navy);
+  --evidence-mid: var(--indigo);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -39,6 +41,8 @@
     --border: #3a3760;
     --stage-spaet: #e0677b;
     --crisis: #e98495;
+    --evidence-strong: var(--pink);
+    --evidence-mid: var(--skyblue);
   }
 }
 
@@ -94,12 +98,25 @@ nav.tabs button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 9px 2px 8px;
+  gap: 2px;
+  padding: 10px 1px 8px;
   border: none;
   background: none;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
+  min-width: 0;
+}
+
+nav.tabs button span {
+  display: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+nav.tabs button.active span {
+  display: block;
 }
 
 nav.tabs svg {
@@ -588,4 +605,98 @@ nav.tabs button.tab-krise {
 
 .filter-chips + .chapter-title {
   margin-top: 16px;
+}
+
+/* Forschung */
+.evidence-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.evidence-rct {
+  background: var(--evidence-strong);
+  color: var(--on-accent);
+}
+
+.evidence-mehrere {
+  background: var(--evidence-mid);
+  color: var(--on-accent);
+}
+
+.evidence-modell {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.evidence-ratgeber {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.evidence-angebot {
+  background: var(--accent-soft);
+  color: var(--text-muted);
+}
+
+.research-card .detail-block {
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+.research-card .detail-block.limitations {
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin-top: 10px;
+}
+
+.research-card .detail-block strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.source-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.source-links a {
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.research-card.highlight,
+.card.highlight {
+  animation: research-flash 1.6s ease-out;
+}
+
+@keyframes research-flash {
+  0% { background: var(--accent-soft); }
+  100% { background: var(--surface); }
+}
+
+/* "Belegt durch"-Hinweis auf Wissen-/Skills-Karten */
+.research-hint {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.research-hint button {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--accent);
+  text-align: left;
 }

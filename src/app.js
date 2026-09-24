@@ -4,11 +4,13 @@ const ICONS = {
   log: '<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 19h4"/>',
   selfcare: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/>',
   krise: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v6"/><path d="M12 16.5v.01"/>',
+  forschung: '<path d="M9 3h6"/><path d="M10 3v6.2l-5.3 8.9a1.4 1.4 0 0 0 1.2 2.1h12.2a1.4 1.4 0 0 0 1.2-2.1L14 9.2V3"/><path d="M7.8 15h8.4"/>',
 };
 
 const TABS = [
   { id: "wissen", label: "Wissen", title: "Wissen" },
   { id: "skills", label: "Skills", title: "Skills" },
+  { id: "forschung", label: "Forschung", title: "Forschung" },
   { id: "log", label: "Log", title: "Log" },
   { id: "selfcare", label: "Fürsorge", title: "Selbstfürsorge" },
   { id: "krise", label: "Krise", title: "Krisenplan" },
@@ -23,6 +25,10 @@ let state = {
   wissenChapter: null,
   skillStage: "frueh",
   logPatternsOpen: false,
+  research: [],
+  researchByPattern: {},
+  researchBySkill: {},
+  forschungCategory: null,
   patterns: [],
   skills: [],
   entries: [],
@@ -96,17 +102,30 @@ async function submitPin() {
 // ---------- Data loading ----------
 
 async function loadAll() {
-  const [patterns, skills, entries, selfcare, crisis] = await Promise.all([
+  const [patterns, skills, research, entries, selfcare, crisis] = await Promise.all([
     api("/api/patterns").then((r) => r.json()),
-    // Skills separat abfangen: Fehlt die Tabelle noch (Migration 0007 nicht eingespielt),
-    // soll nur der Skills-Tab leer bleiben statt die ganze App zu blockieren.
+    // Skills/Research separat abfangen: Fehlt die Tabelle noch (Migration nicht
+    // eingespielt), soll nur der jeweilige Tab leer bleiben statt die ganze App
+    // zu blockieren.
     api("/api/skills").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+    api("/api/research").then((r) => (r.ok ? r.json() : [])).catch(() => []),
     api("/api/entries").then((r) => r.json()),
     api("/api/selfcare").then((r) => r.json()),
     api("/api/crisis").then((r) => r.json()),
   ]);
   state.patterns = patterns;
   state.skills = skills;
+  state.research = research;
+  state.researchByPattern = {};
+  state.researchBySkill = {};
+  research.forEach((r) => {
+    r.pattern_slugs.forEach((slug) => {
+      (state.researchByPattern[slug] ??= []).push({ slug: r.slug, title: r.title });
+    });
+    r.skill_slugs.forEach((slug) => {
+      (state.researchBySkill[slug] ??= []).push({ slug: r.slug, title: r.title });
+    });
+  });
   state.entries = entries;
   state.selfcare = selfcare;
   state.crisis = crisis;
@@ -122,6 +141,20 @@ const CHAPTERS = [
   { title: "Selbstfürsorge", categories: ["Selbstfürsorge"] },
 ];
 
+function researchHint(slug, byMap) {
+  const hits = byMap[slug];
+  if (!hits || !hits.length) return "";
+  return `
+    <div class="research-hint">
+      ${hits
+        .map(
+          (r) => `<button type="button" onclick="jumpToResearch('${r.slug}')">🔬 Belegt durch: ${escapeHtml(r.title)}</button>`
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function patternCard(p) {
   return `
     <div class="card">
@@ -134,6 +167,7 @@ function patternCard(p) {
         <div class="detail-block"><strong>Was hilft</strong>${escapeHtml(p.helps)}</div>
         <div class="detail-block"><strong>Was nicht hilft</strong>${escapeHtml(p.avoid)}</div>
       </details>
+      ${researchHint(p.slug, state.researchByPattern)}
     </div>
   `;
 }
@@ -177,6 +211,82 @@ function renderWissen() {
   );
 }
 
+// ---------- Forschung ----------
+
+const RESEARCH_CATEGORIES = [
+  { id: "programm", title: "Programme" },
+  { id: "modell", title: "Modelle" },
+  { id: "ptbs", title: "PTBS-spezifisch" },
+  { id: "literatur", title: "Literatur" },
+  { id: "anlaufstelle", title: "Anlaufstellen" },
+];
+
+const EVIDENCE_META = {
+  RCT: { label: "RCT", cls: "rct" },
+  "mehrere Studien": { label: "Mehrere Studien", cls: "mehrere" },
+  "Theorie/Modell": { label: "Modell", cls: "modell" },
+  Ratgeber: { label: "Ratgeber", cls: "ratgeber" },
+  Angebot: { label: "Angebot", cls: "angebot" },
+};
+
+function evidenceBadge(level) {
+  const meta = EVIDENCE_META[level] || { label: level, cls: "modell" };
+  return `<span class="evidence-badge evidence-${meta.cls}">${escapeHtml(meta.label)}</span>`;
+}
+
+function researchCard(r) {
+  const sources = r.source_url || [];
+  return `
+    <div class="card research-card" id="research-${escapeHtml(r.slug)}">
+      <div class="entry-head">
+        <span class="category">${escapeHtml(RESEARCH_CATEGORIES.find((c) => c.id === r.category)?.title || r.category)}</span>
+        ${evidenceBadge(r.evidence_level)}
+      </div>
+      <h3>${escapeHtml(r.title)}</h3>
+      <p class="summary">${escapeHtml(r.key_insight)}</p>
+      <div class="detail-block"><strong>Relevanz für mich</strong>${escapeHtml(r.relevance)}</div>
+      <div class="detail-block limitations"><strong>Einschränkungen</strong>${escapeHtml(r.limitations)}</div>
+      ${
+        sources.length
+          ? `<div class="source-links">${sources
+              .map((u, i) => `<a href="${escapeHtml(u)}" target="_blank" rel="noopener">Quelle${sources.length > 1 ? ` ${i + 1}` : ""} ↗</a>`)
+              .join("")}</div>`
+          : ""
+      }
+    </div>
+  `;
+}
+
+function renderForschung() {
+  if (!state.research.length) return `<div class="placeholder">Lädt Forschung…</div>`;
+
+  const byCategory = {};
+  state.research.forEach((r) => {
+    (byCategory[r.category] ??= []).push(r);
+  });
+  const groups = RESEARCH_CATEGORIES.map((c) => ({ ...c, items: byCategory[c.id] || [] })).filter((g) => g.items.length);
+
+  const active = state.forschungCategory;
+  const filter = `
+    <div class="filter-chips">
+      <button class="filter-chip ${active ? "" : "selected"}" onclick="setForschungCategory(null)">Alle <span>${state.research.length}</span></button>
+      ${groups
+        .map(
+          (g) => `<button class="filter-chip ${active === g.id ? "selected" : ""}" onclick="setForschungCategory('${g.id}')">${escapeHtml(g.title)} <span>${g.items.length}</span></button>`
+        )
+        .join("")}
+    </div>
+  `;
+
+  const visible = active ? groups.filter((g) => g.id === active) : groups;
+  return (
+    filter +
+    visible
+      .map((g) => `<h2 class="chapter-title">${escapeHtml(g.title)}</h2>${g.items.map(researchCard).join("")}`)
+      .join("")
+  );
+}
+
 // ---------- Skills ----------
 
 const STAGES = [
@@ -203,6 +313,7 @@ function skillCard(s) {
         <div class="detail-block"><strong>Funktioniert, wenn</strong>${escapeHtml(s.works_when)}</div>
         <div class="detail-block"><strong>Funktioniert nicht, wenn</strong>${escapeHtml(s.fails_when)}</div>
       </details>
+      ${researchHint(s.slug, state.researchBySkill)}
     </div>
   `;
 }
@@ -452,6 +563,27 @@ function renderCrisisContactForm() {
 
 // ---------- Actions ----------
 
+function setForschungCategory(id) {
+  state.forschungCategory = id;
+  render();
+  window.scrollTo(0, 0);
+}
+window.setForschungCategory = setForschungCategory;
+
+function jumpToResearch(slug) {
+  state.tab = "forschung";
+  state.forschungCategory = null;
+  render();
+  window.requestAnimationFrame(() => {
+    const el = document.getElementById("research-" + slug);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.classList.add("highlight");
+    setTimeout(() => el.classList.remove("highlight"), 1600);
+  });
+}
+window.jumpToResearch = jumpToResearch;
+
 function setWissenChapter(title) {
   state.wissenChapter = title;
   render();
@@ -574,7 +706,7 @@ function renderTabs() {
     <nav class="tabs">
       ${TABS.map(
         (t) => `
-        <button class="tab-${t.id} ${state.tab === t.id ? "active" : ""}" onclick="setTab('${t.id}')">
+        <button class="tab-${t.id} ${state.tab === t.id ? "active" : ""}" onclick="setTab('${t.id}')" aria-label="${escapeHtml(t.title)}">
           <svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[t.id]}</svg>
           <span>${t.label}</span>
         </button>
@@ -588,6 +720,7 @@ function render() {
   const content = {
     wissen: renderWissen,
     skills: renderSkills,
+    forschung: renderForschung,
     log: renderLog,
     selfcare: renderSelfcare,
     krise: renderKrise,
