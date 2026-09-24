@@ -57,6 +57,29 @@ function escapeHtml(str) {
   ));
 }
 
+// ---------- Animation helpers ----------
+// Fancy but polite: wraps re-renders in a View Transition where the browser
+// supports it (cross-fades old/new screen), and gets out of the way entirely
+// when the OS says to reduce motion. Plain render() is used only for the
+// very first paint, where there is nothing yet to transition from.
+function prefersReducedMotion() {
+  return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function rerender() {
+  if (typeof document.startViewTransition === "function" && !prefersReducedMotion()) {
+    document.startViewTransition(() => render());
+  } else {
+    render();
+  }
+}
+
+// Staggered entrance for card lists: capped so a long list (50+ Wissen-Karten)
+// doesn't take seconds to finish cascading in.
+function staggerStyle(i) {
+  return ` style="animation-delay:${Math.min(i, 10) * 28}ms"`;
+}
+
 async function api(path, options) {
   const res = await fetch(path, {
     ...options,
@@ -96,6 +119,9 @@ async function submitPin() {
     boot();
   } else {
     errorEl.textContent = "Falscher PIN, bitte nochmal.";
+    input.classList.remove("shake");
+    void input.offsetWidth; // Reflow erzwingen, damit die Animation bei wiederholtem Fehler neu startet
+    input.classList.add("shake");
   }
 }
 
@@ -129,7 +155,7 @@ async function loadAll() {
   state.entries = entries;
   state.selfcare = selfcare;
   state.crisis = crisis;
-  render();
+  rerender();
 }
 
 // ---------- Wissen ----------
@@ -155,9 +181,9 @@ function researchHint(slug, byMap) {
   `;
 }
 
-function patternCard(p) {
+function patternCard(p, i = 0) {
   return `
-    <div class="card">
+    <div class="card"${staggerStyle(i)}>
       <span class="category">${escapeHtml(p.category)}</span>
       <h3>${escapeHtml(p.title)}</h3>
       <p class="summary">${escapeHtml(p.summary)}</p>
@@ -206,7 +232,7 @@ function renderWissen() {
   return (
     filter +
     visible
-      .map((chapter) => `<h2 class="chapter-title">${escapeHtml(chapter.title)}</h2>${chapter.cards.map(patternCard).join("")}`)
+      .map((chapter) => `<h2 class="chapter-title">${escapeHtml(chapter.title)}</h2>${chapter.cards.map((p, i) => patternCard(p, i)).join("")}`)
       .join("")
   );
 }
@@ -234,10 +260,10 @@ function evidenceBadge(level) {
   return `<span class="evidence-badge evidence-${meta.cls}">${escapeHtml(meta.label)}</span>`;
 }
 
-function researchCard(r) {
+function researchCard(r, i = 0) {
   const sources = r.source_url || [];
   return `
-    <div class="card research-card" id="research-${escapeHtml(r.slug)}">
+    <div class="card research-card" id="research-${escapeHtml(r.slug)}"${staggerStyle(i)}>
       <div class="entry-head">
         <span class="category">${escapeHtml(RESEARCH_CATEGORIES.find((c) => c.id === r.category)?.title || r.category)}</span>
         ${evidenceBadge(r.evidence_level)}
@@ -282,7 +308,7 @@ function renderForschung() {
   return (
     filter +
     visible
-      .map((g) => `<h2 class="chapter-title">${escapeHtml(g.title)}</h2>${g.items.map(researchCard).join("")}`)
+      .map((g) => `<h2 class="chapter-title">${escapeHtml(g.title)}</h2>${g.items.map((r, i) => researchCard(r, i)).join("")}`)
       .join("")
   );
 }
@@ -300,9 +326,9 @@ const STAGES = [
   },
 ];
 
-function skillCard(s) {
+function skillCard(s, i = 0) {
   return `
-    <div class="card skill-card stage-${s.stage}">
+    <div class="card skill-card stage-${s.stage}"${staggerStyle(i)}>
       <h3>${escapeHtml(s.title)}</h3>
       <ul class="phrases">
         ${s.example_phrases.map((ph) => `<li>${escapeHtml(ph)}</li>`).join("")}
@@ -335,7 +361,7 @@ function renderSkills() {
         ? `<div class="stage-note">${escapeHtml(stage.note)} <button class="link-btn" onclick="setTab('krise')">Zum Krisenplan →</button></div>`
         : ""
     }
-    ${cards.map(skillCard).join("")}
+    ${cards.map((s, i) => skillCard(s, i)).join("")}
   `;
 }
 
@@ -401,11 +427,11 @@ function renderLogForm() {
   `;
 }
 
-function entryCard(e) {
+function entryCard(e, i = 0) {
   const slugs = (e.pattern_slugs || "").split(",").filter(Boolean);
   const titles = slugs.map((s) => state.patterns.find((p) => p.slug === s)?.title).filter(Boolean);
   return `
-    <div class="card entry-card">
+    <div class="card entry-card"${staggerStyle(i)}>
       <div class="entry-head">
         <span class="entry-date">${formatDateTime(e.occurred_at)}</span>
         <button class="delete-btn" onclick="deleteEntry(${e.id})">✕</button>
@@ -431,7 +457,7 @@ function formatDateTime(iso) {
 function renderLog() {
   return `
     ${renderLogForm()}
-    ${state.entries.length ? state.entries.map(entryCard).join("") : `<div class="placeholder">Noch keine Einträge.</div>`}
+    ${state.entries.length ? state.entries.map((e, i) => entryCard(e, i)).join("") : `<div class="placeholder">Noch keine Einträge.</div>`}
   `;
 }
 
@@ -462,9 +488,9 @@ function renderSelfcareForm() {
   `;
 }
 
-function selfcareCard(s) {
+function selfcareCard(s, i = 0) {
   return `
-    <div class="card entry-card">
+    <div class="card entry-card"${staggerStyle(i)}>
       <div class="entry-head">
         <span class="entry-date">${formatDate(s.date)}</span>
         <button class="delete-btn" onclick="deleteSelfcare(${s.id})">✕</button>
@@ -477,7 +503,7 @@ function selfcareCard(s) {
 function renderSelfcare() {
   return `
     ${renderSelfcareForm()}
-    ${state.selfcare.length ? state.selfcare.map(selfcareCard).join("") : `<div class="placeholder">Noch keine Einträge.</div>`}
+    ${state.selfcare.length ? state.selfcare.map((s, i) => selfcareCard(s, i)).join("") : `<div class="placeholder">Noch keine Einträge.</div>`}
   `;
 }
 
@@ -565,7 +591,7 @@ function renderCrisisContactForm() {
 
 function setForschungCategory(id) {
   state.forschungCategory = id;
-  render();
+  rerender();
   window.scrollTo(0, 0);
 }
 window.setForschungCategory = setForschungCategory;
@@ -573,7 +599,7 @@ window.setForschungCategory = setForschungCategory;
 function jumpToResearch(slug) {
   state.tab = "forschung";
   state.forschungCategory = null;
-  render();
+  rerender();
   window.requestAnimationFrame(() => {
     const el = document.getElementById("research-" + slug);
     if (!el) return;
@@ -586,14 +612,14 @@ window.jumpToResearch = jumpToResearch;
 
 function setWissenChapter(title) {
   state.wissenChapter = title;
-  render();
+  rerender();
   window.scrollTo(0, 0);
 }
 window.setWissenChapter = setWissenChapter;
 
 function setSkillStage(id) {
   state.skillStage = id;
-  render();
+  rerender();
   window.scrollTo(0, 0);
 }
 window.setSkillStage = setSkillStage;
@@ -605,7 +631,7 @@ window.setLogPatternsOpen = setLogPatternsOpen;
 
 function setMood(field, value) {
   state.logForm[field] = state.logForm[field] === value ? null : value;
-  render();
+  rerender();
 }
 window.setMood = setMood;
 
@@ -614,7 +640,7 @@ function togglePattern(id) {
   const idx = ids.indexOf(id);
   if (idx === -1) ids.push(id);
   else ids.splice(idx, 1);
-  render();
+  rerender();
 }
 window.togglePattern = togglePattern;
 
@@ -632,20 +658,20 @@ async function submitEntry() {
   });
   state.logForm = { occurred_at: nowLocal(), note: "", mood_before: null, mood_after: null, pattern_ids: [] };
   state.entries = await api("/api/entries").then((r) => r.json());
-  render();
+  rerender();
 }
 window.submitEntry = submitEntry;
 
 async function deleteEntry(id) {
   await api(`/api/entries?id=${id}`, { method: "DELETE" });
   state.entries = state.entries.filter((e) => e.id !== id);
-  render();
+  rerender();
 }
 window.deleteEntry = deleteEntry;
 
 function updateSelfcareField(field, value) {
   state.selfcareForm[field] = value;
-  render();
+  rerender();
 }
 window.updateSelfcareField = updateSelfcareField;
 
@@ -655,20 +681,20 @@ async function submitSelfcare() {
   await api("/api/selfcare", { method: "POST", body: JSON.stringify({ date, action, note }) });
   state.selfcareForm = { date: todayLocal(), action: SELFCARE_PRESETS[0], note: "" };
   state.selfcare = await api("/api/selfcare").then((r) => r.json());
-  render();
+  rerender();
 }
 window.submitSelfcare = submitSelfcare;
 
 async function deleteSelfcare(id) {
   await api(`/api/selfcare?id=${id}`, { method: "DELETE" });
   state.selfcare = state.selfcare.filter((s) => s.id !== id);
-  render();
+  rerender();
 }
 window.deleteSelfcare = deleteSelfcare;
 
 function toggleCrisisEdit() {
   state.crisisEdit = !state.crisisEdit;
-  render();
+  rerender();
 }
 window.toggleCrisisEdit = toggleCrisisEdit;
 
@@ -678,7 +704,7 @@ async function submitCrisisStep() {
   if (!title) return;
   await api("/api/crisis", { method: "POST", body: JSON.stringify({ kind: "step", title, description }) });
   state.crisis = await api("/api/crisis").then((r) => r.json());
-  render();
+  rerender();
 }
 window.submitCrisisStep = submitCrisisStep;
 
@@ -688,26 +714,27 @@ async function submitCrisisContact() {
   if (!label || !value) return;
   await api("/api/crisis", { method: "POST", body: JSON.stringify({ kind: "contact", label, value }) });
   state.crisis = await api("/api/crisis").then((r) => r.json());
-  render();
+  rerender();
 }
 window.submitCrisisContact = submitCrisisContact;
 
 async function deleteCrisisItem(kind, id) {
   await api(`/api/crisis?kind=${kind}&id=${id}`, { method: "DELETE" });
   state.crisis = await api("/api/crisis").then((r) => r.json());
-  render();
+  rerender();
 }
 window.deleteCrisisItem = deleteCrisisItem;
 
 // ---------- Shell ----------
 
 function renderTabs() {
+  const justSwitched = state.tab !== state._lastRenderedTab;
   return `
     <nav class="tabs">
       ${TABS.map(
         (t) => `
         <button class="tab-${t.id} ${state.tab === t.id ? "active" : ""}" onclick="setTab('${t.id}')" aria-label="${escapeHtml(t.title)}">
-          <svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[t.id]}</svg>
+          <svg class="${state.tab === t.id && justSwitched ? "just-activated" : ""}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[t.id]}</svg>
           <span>${t.label}</span>
         </button>
       `
@@ -734,11 +761,12 @@ function render() {
     ${content}
     ${renderTabs()}
   `;
+  state._lastRenderedTab = state.tab;
 }
 
 function setTab(id) {
   state.tab = id;
-  render();
+  rerender();
   window.scrollTo(0, 0);
 }
 window.setTab = setTab;
