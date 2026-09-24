@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eggshells-shell-v6';
+const CACHE_NAME = 'eggshells-shell-v7';
 const SHELL_FILES = [
   './',
   './index.html',

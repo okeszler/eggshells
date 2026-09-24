@@ -1,19 +1,24 @@
 const ICONS = {
-  wissen: '<path d="M4 19.5V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h13"/>',
+  verstehen: '<path d="M4 19.5V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h13"/>',
   skills: '<path d="M4 5h16v11H10l-5 4v-4H4z"/><path d="M8 9.5h8M8 12.5h5"/>',
   log: '<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 19h4"/>',
   selfcare: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/>',
   krise: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v6"/><path d="M12 16.5v.01"/>',
-  forschung: '<path d="M9 3h6"/><path d="M10 3v6.2l-5.3 8.9a1.4 1.4 0 0 0 1.2 2.1h12.2a1.4 1.4 0 0 0 1.2-2.1L14 9.2V3"/><path d="M7.8 15h8.4"/>',
 };
 
 const TABS = [
-  { id: "wissen", label: "Wissen", title: "Wissen" },
+  { id: "verstehen", label: "Verstehen", title: "Verstehen" },
   { id: "skills", label: "Skills", title: "Skills" },
-  { id: "forschung", label: "Forschung", title: "Forschung" },
   { id: "log", label: "Log", title: "Log" },
   { id: "selfcare", label: "Fürsorge", title: "Selbstfürsorge" },
   { id: "krise", label: "Krise", title: "Krisenplan" },
+];
+
+// Unterbereiche des Tabs "Verstehen"
+const VERSTEHEN_VIEWS = [
+  { id: "wissen", title: "Wissen" },
+  { id: "theorie", title: "Theorie" },
+  { id: "forschung", title: "Forschung" },
 ];
 
 const MOODS = [1, 2, 3, 4, 5];
@@ -21,8 +26,13 @@ const MOOD_EMOJI = { 1: "😞", 2: "😕", 3: "😐", 4: "🙂", 5: "😄" };
 const SELFCARE_PRESETS = ["Gym", "Spaziergang", "Freund:in angerufen", "Musik", "Ruhepause", "Journaling"];
 
 let state = {
-  tab: "wissen",
+  tab: "verstehen",
+  verstehenView: "wissen",
   wissenChapter: null,
+  theory: [],
+  theoryByPattern: {},
+  theoryBySkill: {},
+  theorieSection: null,
   skillStage: "frueh",
   logPatternsOpen: false,
   research: [],
@@ -66,12 +76,23 @@ function prefersReducedMotion() {
   return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+// Gibt ein Promise zurück, das auflöst, sobald der neue Inhalt im DOM steht.
+// Wichtig für alles, was danach ein Element sucht: Bei View Transitions läuft
+// render() nicht sofort, sondern erst nach dem Schnappschuss des alten Stands.
 function rerender() {
   if (typeof document.startViewTransition === "function" && !prefersReducedMotion()) {
-    document.startViewTransition(() => render());
-  } else {
-    render();
+    return document.startViewTransition(() => render()).updateCallbackDone;
   }
+  render();
+  return Promise.resolve();
+}
+
+function scrollToAndHighlight(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+  el.classList.add("highlight");
+  setTimeout(() => el.classList.remove("highlight"), 1600);
 }
 
 // Staggered entrance for card lists: capped so a long list (50+ Wissen-Karten)
@@ -128,13 +149,14 @@ async function submitPin() {
 // ---------- Data loading ----------
 
 async function loadAll() {
-  const [patterns, skills, research, entries, selfcare, crisis] = await Promise.all([
+  const [patterns, skills, research, theory, entries, selfcare, crisis] = await Promise.all([
     api("/api/patterns").then((r) => r.json()),
     // Skills/Research separat abfangen: Fehlt die Tabelle noch (Migration nicht
     // eingespielt), soll nur der jeweilige Tab leer bleiben statt die ganze App
     // zu blockieren.
     api("/api/skills").then((r) => (r.ok ? r.json() : [])).catch(() => []),
     api("/api/research").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+    api("/api/theory").then((r) => (r.ok ? r.json() : [])).catch(() => []),
     api("/api/entries").then((r) => r.json()),
     api("/api/selfcare").then((r) => r.json()),
     api("/api/crisis").then((r) => r.json()),
@@ -152,6 +174,17 @@ async function loadAll() {
       (state.researchBySkill[slug] ??= []).push({ slug: r.slug, title: r.title });
     });
   });
+  state.theory = theory;
+  state.theoryByPattern = {};
+  state.theoryBySkill = {};
+  theory.forEach((t) => {
+    t.pattern_slugs.forEach((slug) => {
+      (state.theoryByPattern[slug] ??= []).push({ slug: t.slug, title: t.title });
+    });
+    t.skill_slugs.forEach((slug) => {
+      (state.theoryBySkill[slug] ??= []).push({ slug: t.slug, title: t.title });
+    });
+  });
   state.entries = entries;
   state.selfcare = selfcare;
   state.crisis = crisis;
@@ -167,15 +200,15 @@ const CHAPTERS = [
   { title: "Selbstfürsorge", categories: ["Selbstfürsorge"] },
 ];
 
-function researchHint(slug, byMap) {
-  const hits = byMap[slug];
-  if (!hits || !hits.length) return "";
+function crossRefs(researchHits = [], theoryHits = []) {
+  if (!researchHits.length && !theoryHits.length) return "";
   return `
     <div class="research-hint">
-      ${hits
-        .map(
-          (r) => `<button type="button" onclick="jumpToResearch('${r.slug}')">🔬 Belegt durch: ${escapeHtml(r.title)}</button>`
-        )
+      ${theoryHits
+        .map((t) => `<button type="button" onclick="jumpToTheory('${t.slug}')">📚 Theorie: ${escapeHtml(t.title)}</button>`)
+        .join("")}
+      ${researchHits
+        .map((r) => `<button type="button" onclick="jumpToResearch('${r.slug}')">🔬 Belegt durch: ${escapeHtml(r.title)}</button>`)
         .join("")}
     </div>
   `;
@@ -193,7 +226,7 @@ function patternCard(p, i = 0) {
         <div class="detail-block"><strong>Was hilft</strong>${escapeHtml(p.helps)}</div>
         <div class="detail-block"><strong>Was nicht hilft</strong>${escapeHtml(p.avoid)}</div>
       </details>
-      ${researchHint(p.slug, state.researchByPattern)}
+      ${crossRefs(state.researchByPattern[p.slug], state.theoryByPattern[p.slug])}
     </div>
   `;
 }
@@ -235,6 +268,92 @@ function renderWissen() {
       .map((chapter) => `<h2 class="chapter-title">${escapeHtml(chapter.title)}</h2>${chapter.cards.map((p, i) => patternCard(p, i)).join("")}`)
       .join("")
   );
+}
+
+// ---------- Theorie ----------
+
+const THEORY_SECTIONS = [
+  { id: "beziehungswissenschaft", title: "Beziehungswissenschaft", authors: ["Gottman"] },
+  { id: "kommunikation", title: "Kommunikation", authors: ["Watzlawick", "Rosenberg"] },
+];
+
+const AUTHOR_NAMES = {
+  Gottman: "John Gottman",
+  Watzlawick: "Paul Watzlawick",
+  Rosenberg: "Marshall Rosenberg",
+};
+
+function theoryCard(t, i = 0) {
+  return `
+    <div class="card theory-card" id="theory-${escapeHtml(t.slug)}"${staggerStyle(i)}>
+      <h3>${escapeHtml(t.title)}</h3>
+      <p class="summary">${escapeHtml(t.core)}</p>
+      <details>
+        <summary>Im Alltag &amp; in unserer Dynamik</summary>
+        <div class="detail-block"><strong>Im Alltag</strong>${escapeHtml(t.everyday)}</div>
+        <div class="detail-block"><strong>In unserer Dynamik</strong>${escapeHtml(t.in_context)}</div>
+      </details>
+      <div class="detail-block limitations"><strong>Grenzen</strong>${escapeHtml(t.limits)}</div>
+      ${t.reference ? `<p class="reference">${escapeHtml(t.reference)}</p>` : ""}
+    </div>
+  `;
+}
+
+function renderTheorie() {
+  if (!state.theory.length) return `<div class="placeholder">Lädt Theorie…</div>`;
+
+  const groups = THEORY_SECTIONS.map((sec) => ({
+    ...sec,
+    byAuthor: sec.authors
+      .map((a) => ({ author: a, items: state.theory.filter((t) => t.section === sec.id && t.author === a) }))
+      .filter((g) => g.items.length),
+  })).filter((sec) => sec.byAuthor.length);
+
+  const active = state.theorieSection;
+  const count = (sec) => sec.byAuthor.reduce((n, g) => n + g.items.length, 0);
+  const filter = `
+    <div class="filter-chips">
+      <button class="filter-chip ${active ? "" : "selected"}" onclick="setTheorieSection(null)">Alle <span>${state.theory.length}</span></button>
+      ${groups
+        .map(
+          (sec) => `<button class="filter-chip ${active === sec.id ? "selected" : ""}" onclick="setTheorieSection('${sec.id}')">${escapeHtml(sec.title)} <span>${count(sec)}</span></button>`
+        )
+        .join("")}
+    </div>
+  `;
+
+  const visible = active ? groups.filter((sec) => sec.id === active) : groups;
+  return (
+    filter +
+    visible
+      .map(
+        (sec) =>
+          `<h2 class="chapter-title">${escapeHtml(sec.title)}</h2>` +
+          sec.byAuthor
+            .map(
+              (g) =>
+                `<h3 class="author-title">${escapeHtml(AUTHOR_NAMES[g.author] || g.author)}</h3>` +
+                g.items.map((t, i) => theoryCard(t, i)).join("")
+            )
+            .join("")
+      )
+      .join("")
+  );
+}
+
+// ---------- Verstehen (Wissen / Theorie / Forschung) ----------
+
+function renderVerstehen() {
+  const view = VERSTEHEN_VIEWS.find((v) => v.id === state.verstehenView) || VERSTEHEN_VIEWS[0];
+  const inner = { wissen: renderWissen, theorie: renderTheorie, forschung: renderForschung }[view.id]();
+  return `
+    <div class="stage-switch view-switch" role="tablist">
+      ${VERSTEHEN_VIEWS.map(
+        (v) => `<button role="tab" class="stage-btn view-btn ${v.id === view.id ? "selected" : ""}" onclick="setVerstehenView('${v.id}')">${escapeHtml(v.title)}</button>`
+      ).join("")}
+    </div>
+    ${inner}
+  `;
 }
 
 // ---------- Forschung ----------
@@ -345,7 +464,7 @@ function skillCard(s, i = 0) {
         <div class="detail-block"><strong>Funktioniert, wenn</strong>${escapeHtml(s.works_when)}</div>
         <div class="detail-block"><strong>Funktioniert nicht, wenn</strong>${escapeHtml(s.fails_when)}</div>
       </details>
-      ${researchHint(s.slug, state.researchBySkill)}
+      ${crossRefs(state.researchBySkill[s.slug], state.theoryBySkill[s.slug])}
     </div>
   `;
 }
@@ -603,18 +722,34 @@ function setForschungCategory(id) {
 window.setForschungCategory = setForschungCategory;
 
 function jumpToResearch(slug) {
-  state.tab = "forschung";
+  state.tab = "verstehen";
+  state.verstehenView = "forschung";
   state.forschungCategory = null;
-  rerender();
-  window.requestAnimationFrame(() => {
-    const el = document.getElementById("research-" + slug);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-    el.classList.add("highlight");
-    setTimeout(() => el.classList.remove("highlight"), 1600);
-  });
+  rerender().then(() => scrollToAndHighlight("research-" + slug));
 }
 window.jumpToResearch = jumpToResearch;
+
+function jumpToTheory(slug) {
+  state.tab = "verstehen";
+  state.verstehenView = "theorie";
+  state.theorieSection = null;
+  rerender().then(() => scrollToAndHighlight("theory-" + slug));
+}
+window.jumpToTheory = jumpToTheory;
+
+function setVerstehenView(id) {
+  state.verstehenView = id;
+  rerender();
+  window.scrollTo(0, 0);
+}
+window.setVerstehenView = setVerstehenView;
+
+function setTheorieSection(id) {
+  state.theorieSection = id;
+  rerender();
+  window.scrollTo(0, 0);
+}
+window.setTheorieSection = setTheorieSection;
 
 function setWissenChapter(title) {
   state.wissenChapter = title;
@@ -751,9 +886,8 @@ function renderTabs() {
 
 function render() {
   const content = {
-    wissen: renderWissen,
+    verstehen: renderVerstehen,
     skills: renderSkills,
-    forschung: renderForschung,
     log: renderLog,
     selfcare: renderSelfcare,
     krise: renderKrise,

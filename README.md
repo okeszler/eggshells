@@ -12,6 +12,8 @@ Cloudflare Pages + D1 (SQLite), Vanilla JS Frontend – gleiches Muster wie gym-
 - ✅ Selbstfürsorge: Formular (Datum, Aktion per Preset oder frei, Notiz) + Liste + Löschen
 - ✅ Krisenmodus: Schritte + Kontakte, im "Bearbeiten"-Modus selbst befüllbar (Inhalte bewusst nicht Teil der Seed-Daten)
 - ✅ PIN-Schutz für die ganze App (Cookie-basiert, `APP_PIN` + `COOKIE_SECRET` als Cloudflare-Secrets)
+- ✅ Theorie: 25 Karten in zwei Kapiteln, Beziehungswissenschaft (John Gottman: vier Reiter und Gegenmittel, Flooding, Reparaturversuche, Nachbesprechung eines Streits, sanfter Einstieg, Zuwendungsangebote, 5:1, lösbare vs. dauerhafte Probleme, Einfluss annehmen) und Kommunikation (Paul Watzlawick: fünf Axiome, Doppelbindung; Marshall Rosenberg: GFK), je mit Kernaussage, Alltag, Übertragung auf BPD/PTBS-Dynamik und immer sichtbaren Grenzen. `theory`/`theory_patterns`/`theory_skills` (Migration `0013`), API `/api/theory` (optional `?section=`, `?author=`); Muster-/Skill-Karten zeigen "Theorie: …" mit Sprung zur Karte
+- ✅ Navigation: fünf Hauptpunkte (Verstehen, Skills, Log, Fürsorge, Krise); "Verstehen" bündelt Wissen, Theorie und Forschung mit einem Umschalter
 - ✅ Forschung: 7 Karten (Programme, Modelle, PTBS-spezifisch, Literatur, Anlaufstellen) mit Evidenz-Badge, Relevanz und Pflichtfeld Einschränkungen, `research`/`research_patterns`/`research_skills` (Migration `0011`), API `/api/research`, Tab mit Kategorie-Filter; Muster-/Skill-Karten zeigen "Belegt durch: …" mit Sprung zur Quelle
 
 ## Nächste Schritte
@@ -22,6 +24,16 @@ Cloudflare Pages + D1 (SQLite), Vanilla JS Frontend – gleiches Muster wie gym-
 - HPE Oberösterreich prüfen: Angebot für Angehörige/Partner:innen dort noch nicht verifiziert (siehe Forschungskarte "HPE Österreich")
 - Partner-spezifische Studien ergänzen, sobald gefunden (aktuelle Evidenz ist überwiegend an gemischten Angehörigengruppen/Eltern erhoben)
 
+## Quellen (Theorie-Bereich)
+- John M. Gottman & Nan Silver: *Die 7 Geheimnisse der glücklichen Ehe*
+- Gottman Institute: Übung zur Nachbesprechung eines Streits (*Aftermath of a Fight or Regrettable Incident*)
+- Paul Watzlawick, Janet H. Beavin & Don D. Jackson: *Menschliche Kommunikation*
+- Paul Watzlawick: *Anleitung zum Unglücklichsein*
+- Gregory Bateson, Don D. Jackson, Jay Haley & John Weakland (1956): *Toward a Theory of Schizophrenia*
+- Marshall B. Rosenberg: *Gewaltfreie Kommunikation*
+
+Alle Inhalte sind in eigenen Worten zusammengefasst, ohne wörtliche Zitate.
+
 ## Setup
 
 ```bash
@@ -31,8 +43,8 @@ wrangler d1 create eggshells-db
 # database_id aus der Ausgabe in wrangler.toml eintragen
 npm run db:init
 npm run db:seed
-# danach die übrigen Migrationen der Reihe nach einspielen (0003 … 0012), z.B.:
-wrangler d1 execute eggshells-db --remote --file=migrations/0012_more_patterns_skills.sql
+# danach die übrigen Migrationen der Reihe nach einspielen (0003 … 0013), z.B.:
+wrangler d1 execute eggshells-db --remote --file=migrations/0013_theory.sql
 wrangler pages secret put APP_PIN --project-name=eggshells
 wrangler pages secret put COOKIE_SECRET --project-name=eggshells
 npm run deploy

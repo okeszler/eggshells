@@ -102,17 +102,17 @@ nav.tabs button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 10px 1px 8px;
+  gap: 3px;
+  padding: 9px 2px 8px;
   border: none;
   background: none;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-muted);
   min-width: 0;
 }
 
 nav.tabs button span {
-  display: none;
+  display: block;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -120,7 +120,7 @@ nav.tabs button span {
 }
 
 nav.tabs button.active span {
-  display: block;
+  font-weight: 600;
 }
 
 nav.tabs svg {
@@ -682,19 +682,22 @@ nav.tabs button.tab-krise {
   color: var(--text-muted);
 }
 
-.research-card .detail-block {
+.research-card .detail-block,
+.theory-card .detail-block.limitations {
   font-size: 13px;
   margin-top: 10px;
 }
 
-.research-card .detail-block.limitations {
+.research-card .detail-block.limitations,
+.theory-card .detail-block.limitations {
   background: var(--accent-soft);
   border-radius: var(--radius);
   padding: 8px 10px;
   margin-top: 10px;
 }
 
-.research-card .detail-block strong {
+.research-card .detail-block strong,
+.theory-card .detail-block.limitations strong {
   display: block;
   margin-bottom: 2px;
 }
@@ -878,4 +881,29 @@ nav.tabs svg.just-activated {
   ::view-transition-new(*) {
     animation: none !important;
   }
+}
+
+/* Verstehen: Umschalter Wissen / Theorie / Forschung */
+.view-btn.selected {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Theorie */
+.author-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 18px 0 10px;
+  color: var(--text);
+}
+
+.chapter-title + .author-title {
+  margin-top: 0;
+}
+
+.theory-card .reference {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-muted);
+  margin: 10px 0 0;
 }
