@@ -6,8 +6,8 @@ App für Menschen in Beziehung mit PTBS/BPD-Partner:innen. Wissen, Skills, Selbs
 Cloudflare Pages + D1 (SQLite), Vanilla JS Frontend – gleiches Muster wie gym-tracker, putzplan, health-metrics-tracker. PIN-Schutz über signiertes Auth-Cookie (analog zu darlehen_violeta).
 
 ## Status
-- ✅ Wissen & Mustererkennung: Datenmodell, 53 Muster über alle Kategorien (Migration `0009` füllt vormals dünne Kategorien auf, `0010` ergänzt PTBS-Kernsymptome: Intrusionen, Vermeidung, Übererregung, Schlaf, Trigger-Ketten, Jahrestage, negative Grundannahmen), API, Frontend-Liste mit Aufklapp-Details
-- ✅ Skills: erprobte Sätze & Werkzeuge nach Eskalationsstufe (Früh / Mitte / Spät), 11 Karten (Migrationen `0007`/`0008`), API `/api/skills`, eigener Tab mit sichtbaren Beispielsätzen und aufklappbarem "wann hilft's / wann nicht"
+- ✅ Wissen & Mustererkennung: Datenmodell, 59 Muster über alle Kategorien (Migration `0009` füllt vormals dünne Kategorien auf, `0010` ergänzt PTBS-Kernsymptome, `0012` ergänzt Eiszeit-Zyklus, Instanz ohne Gesetzbuch, Gefühl validieren ≠ Realität verbiegen, Beratungsresistenz, Überbringer wird zum Feind, Nur zuhören statt lösen), API, Frontend-Liste mit Aufklapp-Details. Sortierung seit `0012` in Zehnerschritten, damit verwandte Karten nebeneinander eingefügt werden können
+- ✅ Skills: erprobte Sätze & Werkzeuge nach Eskalationsstufe (Früh / Mitte / Spät / Danach), 16 Karten (Migrationen `0007`/`0008`/`0012`, u.a. Gelbe und Rote Karte, Validieren + Grenze in einem Satz, Erst Angst spiegeln dann Fakten, Timing für Lösungsgespräche), optionales Hinweisfeld `callout` (z.B. "Was ist Rot?"), API `/api/skills`, eigener Tab mit sichtbaren Beispielsätzen und aufklappbarem "wann hilft's / wann nicht"
 - ✅ Log: Formular (Zeitpunkt, Notiz, Stimmung vorher/nachher, Musterzuordnung) + Liste + Löschen
 - ✅ Selbstfürsorge: Formular (Datum, Aktion per Preset oder frei, Notiz) + Liste + Löschen
 - ✅ Krisenmodus: Schritte + Kontakte, im "Bearbeiten"-Modus selbst befüllbar (Inhalte bewusst nicht Teil der Seed-Daten)
@@ -18,6 +18,7 @@ Cloudflare Pages + D1 (SQLite), Vanilla JS Frontend – gleiches Muster wie gym-
 - Log mit Skills verknüpfen: pro Eintrag festhalten, welcher Skill eingesetzt wurde und ob er gewirkt hat, damit sich zeigt, was in der Praxis wirklich funktioniert
 - Eigene Skills in der App anlegen/bearbeiten (analog zum Bearbeiten-Modus im Krisen-Tab), statt nur über Migrationen
 - Im Krisen-Tab auf die Stufe "Spät" (physischer Ausstieg) verlinken
+- Stufe "Danach" ausbauen (bisher nur eine Karte): Reparaturgespräch, Nachsorge für sich selbst
 - HPE Oberösterreich prüfen: Angebot für Angehörige/Partner:innen dort noch nicht verifiziert (siehe Forschungskarte "HPE Österreich")
 - Partner-spezifische Studien ergänzen, sobald gefunden (aktuelle Evidenz ist überwiegend an gemischten Angehörigengruppen/Eltern erhoben)
 
@@ -30,8 +31,8 @@ wrangler d1 create eggshells-db
 # database_id aus der Ausgabe in wrangler.toml eintragen
 npm run db:init
 npm run db:seed
-# danach die übrigen Migrationen der Reihe nach einspielen (0003 … 0011), z.B.:
-wrangler d1 execute eggshells-db --remote --file=migrations/0011_research.sql
+# danach die übrigen Migrationen der Reihe nach einspielen (0003 … 0012), z.B.:
+wrangler d1 execute eggshells-db --remote --file=migrations/0012_more_patterns_skills.sql
 wrangler pages secret put APP_PIN --project-name=eggshells
 wrangler pages secret put COOKIE_SECRET --project-name=eggshells
 npm run deploy

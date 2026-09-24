@@ -22,6 +22,8 @@
   --stage-frueh: var(--skyblue);
   --stage-mitte: var(--dustyrose);
   --stage-spaet: var(--rose);
+  --stage-danach: var(--indigo);
+  --card-yellow: #d9a520;
   --crisis: var(--rose);
   --evidence-strong: var(--navy);
   --evidence-mid: var(--indigo);
@@ -40,6 +42,8 @@
     --danger: var(--dustyrose);
     --border: #3a3760;
     --stage-spaet: #e0677b;
+    --stage-danach: var(--lavender);
+    --card-yellow: #e8c35a;
     --crisis: #e98495;
     --evidence-strong: var(--pink);
     --evidence-mid: var(--skyblue);
@@ -569,6 +573,7 @@ nav.tabs button.tab-krise {
 .stage-btn.stage-frueh.selected { background: var(--stage-frueh); color: #1c1a30; }
 .stage-btn.stage-mitte.selected { background: var(--stage-mitte); color: #1c1a30; }
 .stage-btn.stage-spaet.selected { background: var(--stage-spaet); }
+.stage-btn.stage-danach.selected { background: var(--stage-danach); color: var(--on-accent); }
 
 .skill-card {
   border-left: 4px solid var(--border);
@@ -577,6 +582,19 @@ nav.tabs button.tab-krise {
 .skill-card.stage-frueh { border-left-color: var(--stage-frueh); }
 .skill-card.stage-mitte { border-left-color: var(--stage-mitte); }
 .skill-card.stage-spaet { border-left-color: var(--stage-spaet); }
+.skill-card.stage-danach { border-left-color: var(--stage-danach); }
+
+.skill-callout {
+  font-size: 13px;
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin: 0 0 10px;
+}
+
+.skill-gelbe-karte .skill-callout { border-left-color: var(--card-yellow); }
+.skill-rote-karte .skill-callout { border-left-color: var(--stage-spaet); }
 
 .skill-card .phrases {
   margin-top: 10px;

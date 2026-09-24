@@ -324,15 +324,21 @@ const STAGES = [
     intro: "Worte erreichen nichts mehr: Die Situation verlassen ist jetzt die beste Option.",
     note: "Kurz rausgehen ist kein Beziehungsende. Es ist eine Pause für euch beide, keine Entscheidung über die Beziehung.",
   },
+  {
+    id: "danach",
+    title: "Danach",
+    intro: "Wenn sich die Lage beruhigt hat: Nachsorge, Reparatur und der richtige Zeitpunkt für Sachthemen.",
+  },
 ];
 
 function skillCard(s, i = 0) {
   return `
-    <div class="card skill-card stage-${s.stage}"${staggerStyle(i)}>
+    <div class="card skill-card stage-${s.stage} skill-${escapeHtml(s.slug)}"${staggerStyle(i)}>
       <h3>${escapeHtml(s.title)}</h3>
       <ul class="phrases">
         ${s.example_phrases.map((ph) => `<li>${escapeHtml(ph)}</li>`).join("")}
       </ul>
+      ${s.callout ? `<div class="skill-callout">${escapeHtml(s.callout)}</div>` : ""}
       <p class="summary">${escapeHtml(s.description)}</p>
       <details>
         <summary>Wann hilft's, wann nicht?</summary>

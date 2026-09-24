@@ -15,7 +15,7 @@ export async function onRequestGet(context) {
   const { DB } = context.env;
   const { results } = await DB.prepare(
     `SELECT * FROM skills
-     ORDER BY CASE stage WHEN 'frueh' THEN 1 WHEN 'mitte' THEN 2 WHEN 'spaet' THEN 3 END,
+     ORDER BY CASE stage WHEN 'frueh' THEN 1 WHEN 'mitte' THEN 2 WHEN 'spaet' THEN 3 WHEN 'danach' THEN 4 END,
               sort_order ASC`
   ).all();
   return Response.json(results.map((s) => ({ ...s, example_phrases: parsePhrases(s.example_phrases) })));
