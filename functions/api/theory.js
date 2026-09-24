@@ -34,7 +34,7 @@ export async function onRequestGet(context) {
     ${conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""}
     GROUP BY t.id
     ORDER BY CASE t.section WHEN 'beziehungswissenschaft' THEN 1 WHEN 'kommunikation' THEN 2 END,
-             CASE t.author WHEN 'Gottman' THEN 1 WHEN 'Watzlawick' THEN 2 WHEN 'Rosenberg' THEN 3 END,
+             CASE t.author WHEN 'Gottman' THEN 1 WHEN 'Chapman' THEN 2 WHEN 'Watzlawick' THEN 3 WHEN 'Rosenberg' THEN 4 ELSE 9 END,
              t.sort_order ASC
   `;
 

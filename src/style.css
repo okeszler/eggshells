@@ -907,3 +907,168 @@ nav.tabs svg.just-activated {
   color: var(--text-muted);
   margin: 10px 0 0;
 }
+
+/* Unsere Sprachen (Chapman) */
+.ll-tool {
+  animation: none;
+  border: 1px solid var(--accent);
+}
+
+.ll-hint,
+.ll-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+.ll-switch {
+  margin-bottom: 10px;
+}
+
+.ll-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ll-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+
+.ll-rank {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ll-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ll-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ll-note {
+  width: 100%;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.ll-arrows {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ll-arrows button {
+  width: 34px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.ll-arrows button:disabled {
+  opacity: 0.3;
+}
+
+.ll-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ll-actions .primary-btn {
+  padding: 10px 18px;
+}
+
+.ll-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 14px;
+}
+
+.ll-status.ok {
+  color: var(--accent);
+}
+
+.ll-status.error {
+  color: var(--danger);
+}
+
+.ll-help-title {
+  font-size: 14px;
+  margin: 20px 0 8px;
+}
+
+.ll-compare {
+  font-size: 13px;
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin: 0 0 10px;
+}
+
+.ll-ideas {
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.ll-ideas ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.ll-note-quote {
+  font-style: italic;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+/* Log: fehlende Sprache */
+.missing-chips {
+  margin-top: 6px;
+  align-items: center;
+}
+
+.chips-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.missing-summary {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}

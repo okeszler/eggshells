@@ -7,12 +7,14 @@ Cloudflare Pages + D1 (SQLite), Vanilla JS Frontend – gleiches Muster wie gym-
 
 ## Status
 - ✅ Wissen & Mustererkennung: Datenmodell, 59 Muster über alle Kategorien (Migration `0009` füllt vormals dünne Kategorien auf, `0010` ergänzt PTBS-Kernsymptome, `0012` ergänzt Eiszeit-Zyklus, Instanz ohne Gesetzbuch, Gefühl validieren ≠ Realität verbiegen, Beratungsresistenz, Überbringer wird zum Feind, Nur zuhören statt lösen), API, Frontend-Liste mit Aufklapp-Details. Sortierung seit `0012` in Zehnerschritten, damit verwandte Karten nebeneinander eingefügt werden können
-- ✅ Skills: erprobte Sätze & Werkzeuge nach Eskalationsstufe (Früh / Mitte / Spät / Danach), 21 Karten (Migrationen `0007`/`0008`/`0012`/`0014`, u.a. Gelbe und Rote Karte, Validieren + Grenze in einem Satz, Erst Angst spiegeln dann Fakten; Stufe "Danach" mit Nachsorge für sich selbst, Wiederannäherung ohne Druck, Nachbesprechung als Ritual, eigener Anteil, Abschließen ohne Entschuldigung, Timing für Lösungsgespräche), optionales Hinweisfeld `callout` (z.B. "Was ist Rot?"), API `/api/skills`, eigener Tab mit sichtbaren Beispielsätzen und aufklappbarem "wann hilft's / wann nicht"
+- ✅ Skills: erprobte Sätze & Werkzeuge nach Eskalationsstufe (Früh / Mitte / Spät / Danach), 22 Karten (Migrationen `0007`/`0008`/`0012`/`0014`/`0015`, darunter "Übersetzen in beide Richtungen" in der Stufe Danach, u.a. Gelbe und Rote Karte, Validieren + Grenze in einem Satz, Erst Angst spiegeln dann Fakten; Stufe "Danach" mit Nachsorge für sich selbst, Wiederannäherung ohne Druck, Nachbesprechung als Ritual, eigener Anteil, Abschließen ohne Entschuldigung, Timing für Lösungsgespräche), optionales Hinweisfeld `callout` (z.B. "Was ist Rot?"), API `/api/skills`, eigener Tab mit sichtbaren Beispielsätzen und aufklappbarem "wann hilft's / wann nicht"
 - ✅ Log: Formular (Zeitpunkt, Notiz, Stimmung vorher/nachher, Musterzuordnung) + Liste + Löschen
 - ✅ Selbstfürsorge: Formular (Datum, Aktion per Preset oder frei, Notiz) + Liste + Löschen
 - ✅ Krisenmodus: Schritte + Kontakte, im "Bearbeiten"-Modus selbst befüllbar (Inhalte bewusst nicht Teil der Seed-Daten)
 - ✅ PIN-Schutz für die ganze App (Cookie-basiert, `APP_PIN` + `COOKIE_SECRET` als Cloudflare-Secrets)
-- ✅ Theorie: 25 Karten in zwei Kapiteln, Beziehungswissenschaft (John Gottman: vier Reiter und Gegenmittel, Flooding, Reparaturversuche, Nachbesprechung eines Streits, sanfter Einstieg, Zuwendungsangebote, 5:1, lösbare vs. dauerhafte Probleme, Einfluss annehmen) und Kommunikation (Paul Watzlawick: fünf Axiome, Doppelbindung; Marshall Rosenberg: GFK), je mit Kernaussage, Alltag, Übertragung auf BPD/PTBS-Dynamik und immer sichtbaren Grenzen. `theory`/`theory_patterns`/`theory_skills` (Migration `0013`), API `/api/theory` (optional `?section=`, `?author=`); Muster-/Skill-Karten zeigen "Theorie: …" mit Sprung zur Karte
+- ✅ Theorie: 32 Karten in zwei Kapiteln, Beziehungswissenschaft (Gary Chapman, Die fünf Sprachen der Liebe: Einführung, je eine Karte pro Sprache, das Währungsproblem; John Gottman: vier Reiter und Gegenmittel, Flooding, Reparaturversuche, Nachbesprechung eines Streits, sanfter Einstieg, Zuwendungsangebote, 5:1, lösbare vs. dauerhafte Probleme, Einfluss annehmen) und Kommunikation (Paul Watzlawick: fünf Axiome, Doppelbindung; Marshall Rosenberg: GFK), je mit Kernaussage, Alltag, Übertragung auf BPD/PTBS-Dynamik und immer sichtbaren Grenzen. `theory`/`theory_patterns`/`theory_skills` (Migration `0013`), API `/api/theory` (optional `?section=`, `?author=`); Muster-/Skill-Karten zeigen "Theorie: …" mit Sprung zur Karte
+- ✅ Werkzeug "Unsere Sprachen" (unter Chapman im Theorie-Bereich): Rangfolge der fünf Sprachen für Ich und Partner:in per Auf/Ab-Buttons, Notiz pro Sprache, automatische Übersetzungshilfe (Ideen für die Top-2 von Partner:in, Hinweis bei unterschiedlicher Hauptsprache). Tabelle `love_language_profile` (Migration `0015`), API `/api/love-languages` (GET, PUT)
+- ✅ Log: optionales Feld "Welche Sprache hat hier gefehlt?" (Spalte `entries.missing_languages`), Zusammenfassung "Am häufigsten gefehlt" über der Liste
 - ✅ Navigation: fünf Hauptpunkte (Verstehen, Skills, Log, Fürsorge, Krise); "Verstehen" bündelt Wissen, Theorie und Forschung mit einem Umschalter
 - ✅ Forschung: 7 Karten (Programme, Modelle, PTBS-spezifisch, Literatur, Anlaufstellen) mit Evidenz-Badge, Relevanz und Pflichtfeld Einschränkungen, `research`/`research_patterns`/`research_skills` (Migration `0011`), API `/api/research`, Tab mit Kategorie-Filter; Muster-/Skill-Karten zeigen "Belegt durch: …" mit Sprung zur Quelle
 
@@ -30,6 +32,7 @@ Cloudflare Pages + D1 (SQLite), Vanilla JS Frontend – gleiches Muster wie gym-
 - Paul Watzlawick: *Anleitung zum Unglücklichsein*
 - Gregory Bateson, Don D. Jackson, Jay Haley & John Weakland (1956): *Toward a Theory of Schizophrenia*
 - Marshall B. Rosenberg: *Gewaltfreie Kommunikation*
+- Gary Chapman: *Die fünf Sprachen der Liebe* (populär, wissenschaftlich schwach belegt: siehe Emily A. Impett, Haeyoung Gideon Park & Amy Muise (2024): *Popular Psychology Through a Scientific Lens: Evaluating Love Languages From a Relationship Science Perspective*, Current Directions in Psychological Science)
 
 Alle Inhalte sind in eigenen Worten zusammengefasst, ohne wörtliche Zitate.
 
@@ -42,8 +45,8 @@ wrangler d1 create eggshells-db
 # database_id aus der Ausgabe in wrangler.toml eintragen
 npm run db:init
 npm run db:seed
-# danach die übrigen Migrationen der Reihe nach einspielen (0003 … 0014), z.B.:
-wrangler d1 execute eggshells-db --remote --file=migrations/0014_danach_skills.sql
+# danach die übrigen Migrationen der Reihe nach einspielen (0003 … 0015), z.B.:
+wrangler d1 execute eggshells-db --remote --file=migrations/0015_love_languages.sql
 wrangler pages secret put APP_PIN --project-name=eggshells
 wrangler pages secret put COOKIE_SECRET --project-name=eggshells
 npm run deploy

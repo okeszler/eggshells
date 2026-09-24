@@ -44,7 +44,15 @@ let state = {
   entries: [],
   selfcare: [],
   crisis: { steps: [], contacts: [] },
-  logForm: { occurred_at: nowLocal(), note: "", mood_before: null, mood_after: null, pattern_ids: [] },
+  logForm: { occurred_at: nowLocal(), note: "", mood_before: null, mood_after: null, pattern_ids: [], missing_languages: [] },
+  // "Unsere Sprachen": Entwurf je Person (Reihenfolge = Rang), plus Speicherstand
+  ll: {
+    person: "ich",
+    draft: { ich: null, partner: null },
+    saved: { ich: false, partner: false },
+    dirty: { ich: false, partner: false },
+    error: "",
+  },
   selfcareForm: { date: todayLocal(), action: SELFCARE_PRESETS[0], note: "" },
   crisisEdit: false,
 };
@@ -149,7 +157,7 @@ async function submitPin() {
 // ---------- Data loading ----------
 
 async function loadAll() {
-  const [patterns, skills, research, theory, entries, selfcare, crisis] = await Promise.all([
+  const [patterns, skills, research, theory, llProfile, entries, selfcare, crisis] = await Promise.all([
     api("/api/patterns").then((r) => r.json()),
     // Skills/Research separat abfangen: Fehlt die Tabelle noch (Migration nicht
     // eingespielt), soll nur der jeweilige Tab leer bleiben statt die ganze App
@@ -157,6 +165,7 @@ async function loadAll() {
     api("/api/skills").then((r) => (r.ok ? r.json() : [])).catch(() => []),
     api("/api/research").then((r) => (r.ok ? r.json() : [])).catch(() => []),
     api("/api/theory").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+    api("/api/love-languages").then((r) => (r.ok ? r.json() : [])).catch(() => []),
     api("/api/entries").then((r) => r.json()),
     api("/api/selfcare").then((r) => r.json()),
     api("/api/crisis").then((r) => r.json()),
@@ -175,6 +184,7 @@ async function loadAll() {
     });
   });
   state.theory = theory;
+  initLoveLanguages(llProfile);
   state.theoryByPattern = {};
   state.theoryBySkill = {};
   theory.forEach((t) => {
@@ -272,13 +282,16 @@ function renderWissen() {
 
 // ---------- Theorie ----------
 
+// Bekannte Autoren in fester Reihenfolge; weitere Autoren aus der Datenbank
+// werden automatisch hinten angehängt.
 const THEORY_SECTIONS = [
-  { id: "beziehungswissenschaft", title: "Beziehungswissenschaft", authors: ["Gottman"] },
+  { id: "beziehungswissenschaft", title: "Beziehungswissenschaft", authors: ["Gottman", "Chapman"] },
   { id: "kommunikation", title: "Kommunikation", authors: ["Watzlawick", "Rosenberg"] },
 ];
 
 const AUTHOR_NAMES = {
   Gottman: "John Gottman",
+  Chapman: "Gary Chapman: Die fünf Sprachen der Liebe",
   Watzlawick: "Paul Watzlawick",
   Rosenberg: "Marshall Rosenberg",
 };
@@ -302,12 +315,16 @@ function theoryCard(t, i = 0) {
 function renderTheorie() {
   if (!state.theory.length) return `<div class="placeholder">Lädt Theorie…</div>`;
 
-  const groups = THEORY_SECTIONS.map((sec) => ({
-    ...sec,
-    byAuthor: sec.authors
-      .map((a) => ({ author: a, items: state.theory.filter((t) => t.section === sec.id && t.author === a) }))
-      .filter((g) => g.items.length),
-  })).filter((sec) => sec.byAuthor.length);
+  const groups = THEORY_SECTIONS.map((sec) => {
+    const inSection = state.theory.filter((t) => t.section === sec.id);
+    const extra = [...new Set(inSection.map((t) => t.author))].filter((a) => !sec.authors.includes(a));
+    return {
+      ...sec,
+      byAuthor: [...sec.authors, ...extra]
+        .map((a) => ({ author: a, items: inSection.filter((t) => t.author === a) }))
+        .filter((g) => g.items.length),
+    };
+  }).filter((sec) => sec.byAuthor.length);
 
   const active = state.theorieSection;
   const count = (sec) => sec.byAuthor.reduce((n, g) => n + g.items.length, 0);
@@ -333,13 +350,222 @@ function renderTheorie() {
             .map(
               (g) =>
                 `<h3 class="author-title">${escapeHtml(AUTHOR_NAMES[g.author] || g.author)}</h3>` +
-                g.items.map((t, i) => theoryCard(t, i)).join("")
+                g.items.map((t, i) => theoryCard(t, i)).join("") +
+                (g.author === "Chapman" ? loveLanguageTool() : "")
             )
             .join("")
       )
       .join("")
   );
 }
+
+// ---------- Unsere Sprachen (Chapman) ----------
+
+const LOVE_LANGUAGES = [
+  {
+    id: "worte",
+    title: "Worte der Wertschätzung",
+    short: "Worte",
+    ideas: [
+      "Sag konkret, was du heute an Partner:in geschätzt hast.",
+      "Schreib tagsüber eine kurze Nachricht ohne besonderen Anlass.",
+      "Sprich aus, was du gerade für euch tust und warum.",
+    ],
+    bridge: "Was du tust, kommt eher an, wenn du es auch aussprichst.",
+  },
+  {
+    id: "zeit",
+    title: "Zweisamkeit",
+    short: "Zweisamkeit",
+    ideas: [
+      "Eine feste halbe Stunde ohne Handy, nur ihr beide.",
+      "Beim Erzählen zuhören, ohne nebenbei etwas anderes zu machen.",
+      "Einen kurzen gemeinsamen Spaziergang einplanen.",
+    ],
+    bridge: "Plane bewusst ungestörte Zeit ein, statt nur nebeneinander Dinge zu erledigen.",
+  },
+  {
+    id: "geschenke",
+    title: "Geschenke",
+    short: "Geschenke",
+    ideas: [
+      "Etwas Kleines mitbringen, das zeigt, dass du zugehört hast.",
+      "Ein Lieblingssnack, eine Blume, ein Zettel: Der Preis ist egal.",
+      "An Tagen, die Partner:in wichtig sind, ein kleines Zeichen setzen.",
+    ],
+    bridge: "Kleine sichtbare Zeichen zeigen, dass du an Partner:in gedacht hast, auch ohne Anlass.",
+  },
+  {
+    id: "hilfe",
+    title: "Hilfsbereitschaft",
+    short: "Hilfe",
+    ideas: [
+      "Eine ungeliebte Aufgabe übernehmen, ohne darauf hinzuweisen.",
+      "Fragen: \"Was kann ich dir heute abnehmen?\"",
+      "Etwas erledigen, bevor darum gebeten wird.",
+    ],
+    bridge: "Worte wirken stärker, wenn ihnen eine konkrete Entlastung folgt.",
+  },
+  {
+    id: "koerper",
+    title: "Zärtlichkeit und Körperkontakt",
+    short: "Nähe",
+    ideas: [
+      "Eine kurze Umarmung zur Begrüßung oder zum Abschied.",
+      "Hand halten oder nah nebeneinander sitzen.",
+      "Vorher fragen, ob Nähe gerade passt, besonders in angespannten Phasen.",
+    ],
+    bridge: "Eine kurze Berührung kann mehr sagen als ein langes Gespräch, wenn sie gerade willkommen ist.",
+  },
+];
+const LL_BY_ID = Object.fromEntries(LOVE_LANGUAGES.map((l) => [l.id, l]));
+const LL_PERSONS = [
+  { id: "ich", title: "Ich" },
+  { id: "partner", title: "Partner:in" },
+];
+
+function initLoveLanguages(rows) {
+  for (const { id } of LL_PERSONS) {
+    const mine = rows.filter((r) => r.person === id).sort((a, b) => a.rank - b.rank);
+    state.ll.saved[id] = mine.length === LOVE_LANGUAGES.length;
+    state.ll.dirty[id] = false;
+    state.ll.draft[id] = state.ll.saved[id]
+      ? mine.map((r) => ({ language: r.language, note: r.note || "" }))
+      : LOVE_LANGUAGES.map((l) => ({ language: l.id, note: "" }));
+  }
+}
+
+function loveLanguageHelp() {
+  const { draft, saved } = state.ll;
+  if (!saved.partner) {
+    return `<p class="ll-empty">Sobald du die Reihenfolge für Partner:in gespeichert hast, erscheinen hier konkrete Ideen.</p>`;
+  }
+  const [p1, p2] = draft.partner.map((d) => LL_BY_ID[d.language]);
+  let compare = "";
+  if (saved.ich) {
+    const mine = LL_BY_ID[draft.ich[0].language];
+    compare =
+      mine.id === p1.id
+        ? `<p class="ll-compare">Ihr teilt dieselbe Hauptsprache: <strong>${escapeHtml(mine.title)}</strong>. Unterschiede zeigen sich eher auf den Plätzen 2 und 3.</p>`
+        : `<p class="ll-compare">Deine Hauptsprache: <strong>${escapeHtml(mine.title)}</strong>. Die von Partner:in: <strong>${escapeHtml(p1.title)}</strong>. ${escapeHtml(p1.bridge)}</p>`;
+  }
+  const noteOf = (id) => draft.partner.find((d) => d.language === id)?.note;
+  return `
+    ${compare}
+    ${[p1, p2]
+      .map(
+        (l, i) => `
+      <div class="ll-ideas">
+        <strong>${i + 1}. ${escapeHtml(l.title)}</strong>
+        ${noteOf(l.id) ? `<p class="ll-note-quote">Deine Notiz: ${escapeHtml(noteOf(l.id))}</p>` : ""}
+        <ul>${l.ideas.map((idea) => `<li>${escapeHtml(idea)}</li>`).join("")}</ul>
+      </div>`
+      )
+      .join("")}
+  `;
+}
+
+function loveLanguageTool() {
+  const { person, draft, saved, dirty, error } = state.ll;
+  const list = draft[person];
+  const status = error
+    ? `<span class="ll-status error">${escapeHtml(error)}</span>`
+    : dirty[person]
+      ? `<span class="ll-status">Änderungen noch nicht gespeichert</span>`
+      : saved[person]
+        ? `<span class="ll-status ok">Gespeichert ✓</span>`
+        : `<span class="ll-status">Noch nicht ausgefüllt</span>`;
+  return `
+    <div class="card ll-tool" id="ll-tool">
+      <h3>Unsere Sprachen</h3>
+      <p class="ll-hint">Deine Vermutung, am besten gemeinsam ausfüllen. Platz 1 ist die Sprache, in der Zuneigung am stärksten ankommt.</p>
+      <div class="stage-switch view-switch ll-switch" role="tablist">
+        ${LL_PERSONS.map(
+          (p) => `<button role="tab" class="stage-btn view-btn ${p.id === person ? "selected" : ""}" onclick="setLlPerson('${p.id}')">${p.title}</button>`
+        ).join("")}
+      </div>
+      <ol class="ll-list">
+        ${list
+          .map(
+            (item, i) => `
+          <li>
+            <span class="ll-rank">${i + 1}</span>
+            <div class="ll-main">
+              <span class="ll-title">${escapeHtml(LL_BY_ID[item.language].title)}</span>
+              <input class="ll-note" type="text" placeholder="Was konkret ankommt (optional)" value="${escapeHtml(item.note)}"
+                onchange="setLlNote(${i}, this.value)" />
+            </div>
+            <div class="ll-arrows">
+              <button type="button" aria-label="Nach oben" ${i === 0 ? "disabled" : ""} onclick="moveLl(${i}, -1)">▲</button>
+              <button type="button" aria-label="Nach unten" ${i === list.length - 1 ? "disabled" : ""} onclick="moveLl(${i}, 1)">▼</button>
+            </div>
+          </li>`
+          )
+          .join("")}
+      </ol>
+      <div class="ll-actions">
+        <button class="primary-btn" onclick="saveLl()">Speichern</button>
+        ${status}
+      </div>
+      <h4 class="ll-help-title">Übersetzungshilfe</h4>
+      ${loveLanguageHelp()}
+    </div>
+  `;
+}
+
+// Nur das Werkzeug neu zeichnen, damit beim Sortieren nicht die ganze Seite
+// (samt Karten-Animationen) neu aufgebaut wird.
+function redrawLlTool() {
+  const el = document.getElementById("ll-tool");
+  if (el) el.outerHTML = loveLanguageTool();
+}
+
+function setLlPerson(id) {
+  state.ll.person = id;
+  state.ll.error = "";
+  redrawLlTool();
+}
+window.setLlPerson = setLlPerson;
+
+function moveLl(index, dir) {
+  const list = state.ll.draft[state.ll.person];
+  const target = index + dir;
+  if (target < 0 || target >= list.length) return;
+  [list[index], list[target]] = [list[target], list[index]];
+  state.ll.dirty[state.ll.person] = true;
+  redrawLlTool();
+}
+window.moveLl = moveLl;
+
+function setLlNote(index, value) {
+  state.ll.draft[state.ll.person][index].note = value;
+  state.ll.dirty[state.ll.person] = true;
+  // Nicht neu zeichnen: sonst verliert das nächste Notizfeld am Handy den Fokus.
+  const status = document.querySelector("#ll-tool .ll-status");
+  if (status) {
+    status.className = "ll-status";
+    status.textContent = "Änderungen noch nicht gespeichert";
+  }
+}
+window.setLlNote = setLlNote;
+
+async function saveLl() {
+  const person = state.ll.person;
+  try {
+    const res = await api("/api/love-languages", {
+      method: "PUT",
+      body: JSON.stringify({ person, items: state.ll.draft[person] }),
+    });
+    if (!res.ok) throw new Error();
+    state.ll.saved[person] = true;
+    state.ll.dirty[person] = false;
+    state.ll.error = "";
+  } catch {
+    state.ll.error = "Speichern fehlgeschlagen. Ist die Migration 0015 schon eingespielt?";
+  }
+  redrawLlTool();
+}
+window.saveLl = saveLl;
 
 // ---------- Verstehen (Wissen / Theorie / Forschung) ----------
 
@@ -547,14 +773,31 @@ function renderLogForm() {
 
       ${state.patterns.length ? `<label class="field-label">Erkannte Muster</label>${patternPicker()}` : ""}
 
+      <label class="field-label">Welche Sprache hat hier gefehlt? (optional)</label>
+      <div class="preset-grid">
+        ${LOVE_LANGUAGES.map(
+          (l) => `<button type="button" class="preset-btn ${state.logForm.missing_languages.includes(l.id) ? "selected" : ""}" onclick="toggleMissingLanguage('${l.id}')">${escapeHtml(l.title)}</button>`
+        ).join("")}
+      </div>
+
       <button class="primary-btn" onclick="submitEntry()">Eintrag speichern</button>
     </div>
   `;
 }
 
+function parseMissingLanguages(raw) {
+  try {
+    const parsed = JSON.parse(raw || "[]");
+    return Array.isArray(parsed) ? parsed.filter((id) => LL_BY_ID[id]) : [];
+  } catch {
+    return [];
+  }
+}
+
 function entryCard(e, i = 0) {
   const slugs = (e.pattern_slugs || "").split(",").filter(Boolean);
   const titles = slugs.map((s) => state.patterns.find((p) => p.slug === s)?.title).filter(Boolean);
+  const missing = parseMissingLanguages(e.missing_languages);
   return `
     <div class="card entry-card"${staggerStyle(i)}>
       <div class="entry-head">
@@ -564,8 +807,20 @@ function entryCard(e, i = 0) {
       ${e.mood_before || e.mood_after ? `<div class="mood-line">${e.mood_before ? MOOD_EMOJI[e.mood_before] : "—"} → ${e.mood_after ? MOOD_EMOJI[e.mood_after] : "—"}</div>` : ""}
       ${e.note ? `<p class="entry-note">${escapeHtml(e.note)}</p>` : ""}
       ${titles.length ? `<div class="chips">${titles.map((t) => `<span class="chip">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
+      ${missing.length ? `<div class="chips missing-chips"><span class="chips-label">Gefehlt:</span>${missing.map((id) => `<span class="chip">${escapeHtml(LL_BY_ID[id].title)}</span>`).join("")}</div>` : ""}
     </div>
   `;
+}
+
+// Über alle Einträge: welche Sprache fehlt am häufigsten?
+function missingLanguageSummary() {
+  const counts = {};
+  state.entries.forEach((e) => parseMissingLanguages(e.missing_languages).forEach((id) => (counts[id] = (counts[id] || 0) + 1)));
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  if (!top.length) return "";
+  return `<p class="missing-summary">Am häufigsten gefehlt: ${top
+    .map(([id, n]) => `${escapeHtml(LL_BY_ID[id].title)} (${n})`)
+    .join(", ")}</p>`;
 }
 
 function formatDate(isoDate) {
@@ -582,6 +837,7 @@ function formatDateTime(iso) {
 function renderLog() {
   return `
     ${renderLogForm()}
+    ${missingLanguageSummary()}
     ${state.entries.length ? state.entries.map((e, i) => entryCard(e, i)).join("") : `<div class="placeholder">Noch keine Einträge.</div>`}
   `;
 }
@@ -785,19 +1041,28 @@ function togglePattern(id) {
 }
 window.togglePattern = togglePattern;
 
+function toggleMissingLanguage(id) {
+  const ids = state.logForm.missing_languages;
+  const idx = ids.indexOf(id);
+  if (idx === -1) ids.push(id);
+  else ids.splice(idx, 1);
+  rerender();
+}
+window.toggleMissingLanguage = toggleMissingLanguage;
+
 function updateLogField(field, value) {
   state.logForm[field] = value;
 }
 window.updateLogField = updateLogField;
 
 async function submitEntry() {
-  const { occurred_at, note, mood_before, mood_after, pattern_ids } = state.logForm;
+  const { occurred_at, note, mood_before, mood_after, pattern_ids, missing_languages } = state.logForm;
   if (!occurred_at) return;
   await api("/api/entries", {
     method: "POST",
-    body: JSON.stringify({ occurred_at, note, mood_before, mood_after, pattern_ids }),
+    body: JSON.stringify({ occurred_at, note, mood_before, mood_after, pattern_ids, missing_languages }),
   });
-  state.logForm = { occurred_at: nowLocal(), note: "", mood_before: null, mood_after: null, pattern_ids: [] };
+  state.logForm = { occurred_at: nowLocal(), note: "", mood_before: null, mood_after: null, pattern_ids: [], missing_languages: [] };
   state.entries = await api("/api/entries").then((r) => r.json());
   rerender();
 }
