@@ -1144,3 +1144,16 @@ body.is-busy .primary-btn {
   text-decoration: underline;
   padding: 4px;
 }
+
+/* Log: wiederhergestellter Entwurf */
+.draft-note {
+  font-size: 13px;
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin: -2px 0 6px;
+}
+
+.draft-note .link-btn {
+  font-weight: 600;
+}

@@ -1,10 +1,9 @@
-import { istAngemeldet, unauthorized } from "../_lib.js";
+// Anmeldung prüft functions/api/_middleware.js für alle Routen.
 
 const PERSONS = ["ich", "partner"];
 const LANGUAGES = ["worte", "zeit", "geschenke", "hilfe", "koerper"];
 
 export async function onRequestGet(context) {
-  if (!(await istAngemeldet(context.request, context.env))) return unauthorized();
   const { DB } = context.env;
   const { results } = await DB.prepare(
     "SELECT person, language, rank, note, updated_at FROM love_language_profile ORDER BY person, rank"
@@ -15,7 +14,6 @@ export async function onRequestGet(context) {
 // Body: { person: "ich" | "partner", items: [{ language, note }, ...] }
 // Die Reihenfolge der items ist die Rangfolge (erstes Element = Platz 1).
 export async function onRequestPut(context) {
-  if (!(await istAngemeldet(context.request, context.env))) return unauthorized();
   const { DB } = context.env;
   const { person, items } = await context.request.json();
 

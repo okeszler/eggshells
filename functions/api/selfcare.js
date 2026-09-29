@@ -1,7 +1,6 @@
-import { istAngemeldet, unauthorized } from "../_lib.js";
+// Anmeldung prüft functions/api/_middleware.js für alle Routen.
 
 export async function onRequestGet(context) {
-  if (!(await istAngemeldet(context.request, context.env))) return unauthorized();
   const { DB } = context.env;
   const { results } = await DB.prepare(
     "SELECT * FROM selfcare_actions ORDER BY date DESC, id DESC"
@@ -10,7 +9,6 @@ export async function onRequestGet(context) {
 }
 
 export async function onRequestPost(context) {
-  if (!(await istAngemeldet(context.request, context.env))) return unauthorized();
   const { DB } = context.env;
   const body = await context.request.json();
   const { date, action, note } = body;
@@ -27,7 +25,6 @@ export async function onRequestPost(context) {
 }
 
 export async function onRequestDelete(context) {
-  if (!(await istAngemeldet(context.request, context.env))) return unauthorized();
   const { DB } = context.env;
   const id = new URL(context.request.url).searchParams.get("id");
   if (!id) return Response.json({ error: "id fehlt" }, { status: 400 });

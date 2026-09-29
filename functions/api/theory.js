@@ -1,11 +1,10 @@
-import { istAngemeldet, unauthorized } from "../_lib.js";
+// Anmeldung prüft functions/api/_middleware.js für alle Routen.
 
 function splitSlugs(raw) {
   return raw ? raw.split(",") : [];
 }
 
 export async function onRequestGet(context) {
-  if (!(await istAngemeldet(context.request, context.env))) return unauthorized();
   const { DB } = context.env;
   const url = new URL(context.request.url);
   const section = url.searchParams.get("section");

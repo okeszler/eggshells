@@ -1,7 +1,6 @@
-import { istAngemeldet, unauthorized } from "../_lib.js";
+// Anmeldung prüft functions/api/_middleware.js für alle Routen.
 
 export async function onRequestGet(context) {
-  if (!(await istAngemeldet(context.request, context.env))) return unauthorized();
   const { DB } = context.env;
   const { results } = await DB.prepare(
     "SELECT * FROM patterns ORDER BY sort_order ASC"

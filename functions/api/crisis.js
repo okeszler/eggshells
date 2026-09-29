@@ -1,7 +1,6 @@
-import { istAngemeldet, unauthorized } from "../_lib.js";
+// Anmeldung prüft functions/api/_middleware.js für alle Routen.
 
 export async function onRequestGet(context) {
-  if (!(await istAngemeldet(context.request, context.env))) return unauthorized();
   const { DB } = context.env;
   const steps = await DB.prepare(
     "SELECT * FROM crisis_steps ORDER BY sort_order ASC"
@@ -13,7 +12,6 @@ export async function onRequestGet(context) {
 }
 
 export async function onRequestPost(context) {
-  if (!(await istAngemeldet(context.request, context.env))) return unauthorized();
   const { DB } = context.env;
   const body = await context.request.json();
   const { kind } = body;
@@ -48,7 +46,6 @@ export async function onRequestPost(context) {
 }
 
 export async function onRequestDelete(context) {
-  if (!(await istAngemeldet(context.request, context.env))) return unauthorized();
   const { DB } = context.env;
   const url = new URL(context.request.url);
   const kind = url.searchParams.get("kind");

@@ -44,7 +44,8 @@ let state = {
   entries: [],
   selfcare: [],
   crisis: { steps: [], contacts: [] },
-  logForm: { occurred_at: nowLocal(), note: "", mood_before: null, mood_after: null, pattern_ids: [], missing_languages: [] },
+  logForm: emptyLogForm(),
+  logDraftRestored: false,
   // "Unsere Sprachen": Entwurf je Person (Reihenfolge = Rang), plus Speicherstand
   ll: {
     person: "ich",
@@ -60,6 +61,53 @@ let state = {
   offline: false,
   loadProblems: [],
 };
+
+function emptyLogForm() {
+  return { occurred_at: nowLocal(), note: "", mood_before: null, mood_after: null, pattern_ids: [], missing_languages: [] };
+}
+
+// ---------- Log-Entwurf ----------
+// Ein angefangener Log-Eintrag wird lokal gesichert, damit er nicht verloren
+// geht, wenn das Handy die App im Hintergrund beendet. Nach dem Speichern
+// (oder "Verwerfen") wird der Entwurf sofort gelöscht.
+const LOG_DRAFT_KEY = "eggshells-log-draft";
+
+function logFormHasContent(f) {
+  return Boolean(f.note.trim() || f.mood_before || f.mood_after || f.pattern_ids.length || f.missing_languages.length);
+}
+
+function saveLogDraft() {
+  try {
+    if (logFormHasContent(state.logForm)) localStorage.setItem(LOG_DRAFT_KEY, JSON.stringify(state.logForm));
+    else localStorage.removeItem(LOG_DRAFT_KEY);
+  } catch {
+    // Speicher gesperrt: dann eben ohne Entwurf
+  }
+}
+
+function clearLogDraft() {
+  try {
+    localStorage.removeItem(LOG_DRAFT_KEY);
+  } catch {}
+}
+
+function restoreLogDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(LOG_DRAFT_KEY));
+    if (draft && typeof draft === "object") {
+      state.logForm = { ...emptyLogForm(), ...draft };
+      state.logDraftRestored = logFormHasContent(state.logForm);
+    }
+  } catch {}
+}
+
+function discardLogDraft() {
+  state.logForm = emptyLogForm();
+  state.logDraftRestored = false;
+  clearLogDraft();
+  rerender();
+}
+window.discardLogDraft = discardLogDraft;
 
 function todayLocal() {
   const d = new Date();
@@ -932,11 +980,16 @@ function renderLogForm() {
   return `
     <div class="card form-card">
       <h3>Neuer Eintrag</h3>
+      ${
+        state.logDraftRestored
+          ? `<div class="draft-note">Angefangener Entwurf wiederhergestellt. <button class="link-btn" onclick="discardLogDraft()">Verwerfen</button></div>`
+          : ""
+      }
       <label class="field-label">Zeitpunkt</label>
       <input type="datetime-local" value="${state.logForm.occurred_at}" onchange="updateLogField('occurred_at', this.value)" />
 
       <label class="field-label">Notiz</label>
-      <textarea rows="3" placeholder="Was ist passiert?" onchange="updateLogField('note', this.value)">${escapeHtml(state.logForm.note)}</textarea>
+      <textarea rows="3" placeholder="Was ist passiert?" oninput="updateLogField('note', this.value)">${escapeHtml(state.logForm.note)}</textarea>
 
       <label class="field-label">Stimmung vorher</label>
       ${moodPicker("mood_before", state.logForm.mood_before)}
@@ -1213,6 +1266,7 @@ window.setLogPatternsOpen = setLogPatternsOpen;
 
 function setMood(field, value) {
   state.logForm[field] = state.logForm[field] === value ? null : value;
+  saveLogDraft();
   rerender();
 }
 window.setMood = setMood;
@@ -1222,6 +1276,7 @@ function togglePattern(id) {
   const idx = ids.indexOf(id);
   if (idx === -1) ids.push(id);
   else ids.splice(idx, 1);
+  saveLogDraft();
   rerender();
 }
 window.togglePattern = togglePattern;
@@ -1231,12 +1286,14 @@ function toggleMissingLanguage(id) {
   const idx = ids.indexOf(id);
   if (idx === -1) ids.push(id);
   else ids.splice(idx, 1);
+  saveLogDraft();
   rerender();
 }
 window.toggleMissingLanguage = toggleMissingLanguage;
 
 function updateLogField(field, value) {
   state.logForm[field] = value;
+  saveLogDraft();
 }
 window.updateLogField = updateLogField;
 
@@ -1258,8 +1315,10 @@ function submitEntry() {
       method: "POST",
       body: JSON.stringify({ occurred_at, note, mood_before, mood_after, pattern_ids, missing_languages }),
     });
-    // Formular erst leeren, wenn der Server den Eintrag wirklich hat
-    state.logForm = { occurred_at: nowLocal(), note: "", mood_before: null, mood_after: null, pattern_ids: [], missing_languages: [] };
+    // Formular und Entwurf erst leeren, wenn der Server den Eintrag wirklich hat
+    state.logForm = emptyLogForm();
+    state.logDraftRestored = false;
+    clearLogDraft();
     await refreshList("/api/entries", "entries");
     rerender();
     showToast("Eintrag gespeichert", "success");
@@ -1452,6 +1511,7 @@ function setTab(id) {
 window.setTab = setTab;
 
 async function boot() {
+  restoreLogDraft();
   render();
   try {
     await loadAll();

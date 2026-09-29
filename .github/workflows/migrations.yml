@@ -1,0 +1,33 @@
+# Spielt neue D1-Migrationen automatisch ein, sobald eine Datei in
+# migrations/ auf main landet. Wrangler merkt sich in der Tabelle
+# d1_migrations, was schon eingespielt ist, und führt nur Neues aus.
+#
+# Benötigte Repository-Secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   API-Token mit Berechtigung "D1: Edit"
+#   CLOUDFLARE_ACCOUNT_ID  Account-ID aus dem Cloudflare-Dashboard
+name: D1-Migrationen
+
+on:
+  push:
+    branches: [main]
+    paths: ["migrations/**"]
+  workflow_dispatch:
+
+# Nie zwei Migrationsläufe gleichzeitig
+concurrency:
+  group: d1-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Migrationen einspielen
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: d1 migrations apply eggshells-db --remote
