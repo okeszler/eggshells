@@ -11,21 +11,35 @@ async function hmac(secret, message) {
     .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+// Vergleich in konstanter Zeit, damit die Antwortzeit nichts darüber verrät,
+// wie viele Zeichen schon stimmen.
+export function sicherGleich(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  }
+  return diff === 0;
+}
+
 // Token = expiryTimestamp.signature
 export async function erstelleAuthToken(secret, gueltigTageAb = 30) {
+  if (!secret) throw new Error("COOKIE_SECRET fehlt");
   const ablauf = Date.now() + gueltigTageAb * 24 * 60 * 60 * 1000;
   const sig = await hmac(secret, String(ablauf));
   return `${ablauf}.${sig}`;
 }
 
 export async function pruefeAuthToken(secret, token) {
-  if (!token) return false;
+  // Ohne Secret würde mit dem Text "undefined" signiert, und jedes Token
+  // wäre fälschbar. Dann lieber niemanden reinlassen.
+  if (!secret || !token) return false;
   const [ablaufStr, sig] = token.split(".");
   if (!ablaufStr || !sig) return false;
   const ablauf = Number(ablaufStr);
   if (!Number.isFinite(ablauf) || ablauf < Date.now()) return false;
   const erwartet = await hmac(secret, ablaufStr);
-  return erwartet === sig;
+  return sicherGleich(erwartet, sig);
 }
 
 export function leseCookie(request, name) {

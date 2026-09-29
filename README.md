@@ -11,7 +11,9 @@ Cloudflare Pages + D1 (SQLite), Vanilla JS Frontend – gleiches Muster wie gym-
 - ✅ Log: Formular (Zeitpunkt, Notiz, Stimmung vorher/nachher, Musterzuordnung) + Liste + Löschen
 - ✅ Selbstfürsorge: Formular (Datum, Aktion per Preset oder frei, Notiz) + Liste + Löschen
 - ✅ Krisenmodus: Schritte + Kontakte, im "Bearbeiten"-Modus selbst befüllbar (Inhalte bewusst nicht Teil der Seed-Daten)
-- ✅ PIN-Schutz für die ganze App (Cookie-basiert, `APP_PIN` + `COOKIE_SECRET` als Cloudflare-Secrets)
+- ✅ PIN-Schutz für die ganze App (Cookie-basiert, `APP_PIN` + `COOKIE_SECRET` als Cloudflare-Secrets). Fehlversuche begrenzt: 5 pro IP in 15 Minuten, 20 insgesamt pro Stunde (Tabelle `auth_attempts`, Migration `0016`). Fehlt `COOKIE_SECRET`, wird niemand eingelassen. Empfehlung: PIN mit mindestens 6 Ziffern
+- ✅ Offline: Krisenplan und Skills werden auf dem Gerät zwischengespeichert und sind ohne Verbindung sichtbar (auch ohne PIN, weil offline nichts geprüft werden kann). Log-Einträge werden bewusst nicht lokal gespeichert
+- ✅ Speichern: Formulare werden erst geleert, wenn der Server den Eintrag bestätigt hat; Fehler erscheinen als Hinweis, Doppeltipps erzeugen keine doppelten Einträge. Löschen mit 5 Sekunden "Rückgängig"
 - ✅ Theorie: 32 Karten in zwei Kapiteln, Beziehungswissenschaft (Gary Chapman, Die fünf Sprachen der Liebe: Einführung, je eine Karte pro Sprache, das Währungsproblem; John Gottman: vier Reiter und Gegenmittel, Flooding, Reparaturversuche, Nachbesprechung eines Streits, sanfter Einstieg, Zuwendungsangebote, 5:1, lösbare vs. dauerhafte Probleme, Einfluss annehmen) und Kommunikation (Paul Watzlawick: fünf Axiome, Doppelbindung; Marshall Rosenberg: GFK), je mit Kernaussage, Alltag, Übertragung auf BPD/PTBS-Dynamik und immer sichtbaren Grenzen. `theory`/`theory_patterns`/`theory_skills` (Migration `0013`), API `/api/theory` (optional `?section=`, `?author=`); Muster-/Skill-Karten zeigen "Theorie: …" mit Sprung zur Karte
 - ✅ Werkzeug "Unsere Sprachen" (unter Chapman im Theorie-Bereich): Rangfolge der fünf Sprachen für Ich und Partner:in per Auf/Ab-Buttons, Notiz pro Sprache, automatische Übersetzungshilfe (Ideen für die Top-2 von Partner:in, Hinweis bei unterschiedlicher Hauptsprache). Tabelle `love_language_profile` (Migration `0015`), API `/api/love-languages` (GET, PUT)
 - ✅ Log: optionales Feld "Welche Sprache hat hier gefehlt?" (Spalte `entries.missing_languages`), Zusammenfassung "Am häufigsten gefehlt" über der Liste
@@ -45,8 +47,8 @@ wrangler d1 create eggshells-db
 # database_id aus der Ausgabe in wrangler.toml eintragen
 npm run db:init
 npm run db:seed
-# danach die übrigen Migrationen der Reihe nach einspielen (0003 … 0015), z.B.:
-wrangler d1 execute eggshells-db --remote --file=migrations/0015_love_languages.sql
+# danach die übrigen Migrationen der Reihe nach einspielen (0003 … 0016), z.B.:
+wrangler d1 execute eggshells-db --remote --file=migrations/0016_auth_attempts.sql
 wrangler pages secret put APP_PIN --project-name=eggshells
 wrangler pages secret put COOKIE_SECRET --project-name=eggshells
 npm run deploy
@@ -62,5 +64,5 @@ npm run dev
 ```
 
 ## Laufende Wartung
-- **Code-Änderungen:** `npm run deploy` erneut ausführen. URL bleibt gleich.
-- **Schema-Änderungen:** neue Migration in `migrations/` anlegen, mit `wrangler d1 execute eggshells-db --remote --file=migrations/000X_....sql` einspielen.
+- **Code-Änderungen:** Cloudflare Pages ist mit GitHub verbunden, jeder Push auf `main` wird automatisch deployt.
+- **Schema-Änderungen:** neue Migration in `migrations/` anlegen und einspielen, entweder über die D1-Konsole im Cloudflare-Dashboard oder mit `wrangler d1 execute eggshells-db --remote --file=migrations/000X_....sql`. Migrationen laufen nicht automatisch mit.

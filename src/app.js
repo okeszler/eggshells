@@ -55,6 +55,10 @@ let state = {
   },
   selfcareForm: { date: todayLocal(), action: SELFCARE_PRESETS[0], note: "" },
   crisisEdit: false,
+  // Ladezustand: offline = keine Verbindung beim letzten Laden,
+  // loadProblems = Pfade, die nicht geladen werden konnten
+  offline: false,
+  loadProblems: [],
 };
 
 function todayLocal() {
@@ -116,10 +120,166 @@ async function api(path, options) {
   });
   if (res.status === 401) {
     showPinScreen();
-    throw new Error("unauthorized");
+    const err = new Error("Nicht angemeldet");
+    err.unauthorized = true;
+    throw err;
   }
   return res;
 }
+
+// Für Schreibzugriffe: wirft mit verständlicher Meldung, wenn der Server
+// ablehnt oder keine Verbindung besteht.
+async function apiOk(path, options) {
+  let res;
+  try {
+    res = await api(path, options);
+  } catch (e) {
+    if (e.unauthorized) throw e;
+    throw new Error("Keine Verbindung");
+  }
+  if (!res.ok) throw new Error(`Der Server hat einen Fehler gemeldet (${res.status})`);
+  return res;
+}
+
+// Krisenplan und Skills werden lokal zwischengespeichert, damit sie auch
+// ohne Verbindung da sind. Log-Einträge bewusst nicht: Die sind persönlich
+// und offline nicht nötig.
+const OFFLINE_CACHE = {
+  "/api/crisis": "eggshells-cache-crisis",
+  "/api/skills": "eggshells-cache-skills",
+};
+
+function readCache(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key));
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {
+    // Speicher voll oder gesperrt: dann eben ohne Offline-Kopie
+  }
+}
+
+// Lädt eine Liste für die Anzeige. Wirft nur bei 401 (dann PIN-Bildschirm);
+// alle anderen Fehler werden vermerkt und durch den letzten Offline-Stand
+// oder den Fallback ersetzt, damit die App trotzdem erscheint.
+async function loadJson(path, fallback) {
+  const cacheKey = OFFLINE_CACHE[path];
+  try {
+    const res = await api(path);
+    if (!res.ok) throw new Error(String(res.status));
+    const data = await res.json();
+    if (cacheKey) writeCache(cacheKey, data);
+    return data;
+  } catch (e) {
+    if (e.unauthorized) throw e;
+    if (e instanceof TypeError) state.offline = true;
+    state.loadProblems.push(path);
+    return (cacheKey && readCache(cacheKey)) || fallback;
+  }
+}
+
+function placeholder(what, path) {
+  if (state.loadProblems.includes(path)) {
+    return `<div class="placeholder static">${state.offline ? "Ohne Verbindung nicht verfügbar." : `${what} konnten nicht geladen werden.`}</div>`;
+  }
+  return `<div class="placeholder">Lädt ${what}…</div>`;
+}
+
+// ---------- Rückmeldungen (Toast) ----------
+
+let toastTimer = null;
+
+function showToast(message, kind = "info", { actionLabel, onAction, duration = 4000 } = {}) {
+  let el = document.getElementById("toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "toast";
+    el.setAttribute("role", "status");
+    el.setAttribute("aria-live", "polite");
+    document.body.appendChild(el);
+  }
+  el.className = `toast ${kind} visible`;
+  el.innerHTML = `<span>${escapeHtml(message)}</span>${actionLabel ? `<button type="button">${escapeHtml(actionLabel)}</button>` : ""}`;
+  if (actionLabel) el.querySelector("button").onclick = onAction;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, duration);
+}
+
+function hideToast() {
+  const el = document.getElementById("toast");
+  if (el) el.classList.remove("visible");
+}
+
+// ---------- Aktionen absichern ----------
+
+// Verhindert Doppel-Tipps und zeigt Fehler an, statt sie zu verschlucken.
+let busy = false;
+
+async function runAction(fn, errorPrefix = "Das hat nicht geklappt") {
+  if (busy) return;
+  busy = true;
+  document.body.classList.add("is-busy");
+  try {
+    await fn();
+  } catch (e) {
+    if (!e.unauthorized) showToast(`${errorPrefix}: ${e.message}`, "error", { duration: 6000 });
+  } finally {
+    busy = false;
+    document.body.classList.remove("is-busy");
+  }
+}
+
+// Löschen mit 5 Sekunden "Rückgängig". Erst danach geht die Anfrage raus.
+let pendingDelete = null;
+
+function deleteWithUndo({ label, remove, restore, commit }) {
+  flushPendingDelete();
+  remove();
+  rerender();
+  const entry = {
+    finish: async () => {
+      clearTimeout(entry.timer);
+      if (pendingDelete === entry) pendingDelete = null;
+      try {
+        await commit();
+      } catch (e) {
+        if (e.unauthorized) return;
+        restore();
+        rerender();
+        showToast(`Löschen fehlgeschlagen: ${e.message}`, "error", { duration: 6000 });
+      }
+    },
+  };
+  entry.timer = setTimeout(entry.finish, 5000);
+  pendingDelete = entry;
+  showToast(`${label} gelöscht`, "info", {
+    actionLabel: "Rückgängig",
+    duration: 5000,
+    onAction: () => {
+      clearTimeout(entry.timer);
+      if (pendingDelete === entry) pendingDelete = null;
+      restore();
+      rerender();
+      hideToast();
+    },
+  });
+}
+
+function flushPendingDelete() {
+  if (pendingDelete) pendingDelete.finish();
+}
+
+// App wird geschlossen oder in den Hintergrund geschoben: ausstehendes
+// Löschen sofort abschicken (keepalive sorgt dafür, dass es noch rausgeht).
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") flushPendingDelete();
+});
 
 // ---------- Auth ----------
 
@@ -136,39 +296,52 @@ function hidePinScreen() {
 async function submitPin() {
   const input = document.getElementById("pin-input");
   const errorEl = document.getElementById("pin-error");
-  const res = await fetch("/api/auth", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ pin: input.value }),
-  });
+  let res;
+  try {
+    res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin: input.value }),
+    });
+  } catch {
+    errorEl.textContent = "Keine Verbindung. Bitte später nochmal versuchen.";
+    return;
+  }
   if (res.ok) {
     errorEl.textContent = "";
     input.value = "";
     hidePinScreen();
     boot();
-  } else {
-    errorEl.textContent = "Falscher PIN, bitte nochmal.";
-    input.classList.remove("shake");
-    void input.offsetWidth; // Reflow erzwingen, damit die Animation bei wiederholtem Fehler neu startet
-    input.classList.add("shake");
+    return;
   }
+  const data = await res.json().catch(() => ({}));
+  errorEl.textContent =
+    res.status === 401
+      ? "Falscher PIN, bitte nochmal."
+      : res.status === 429
+        ? data.error || "Zu viele Fehlversuche. Bitte später nochmal versuchen."
+        : "Anmeldung gerade nicht möglich.";
+  input.classList.remove("shake");
+  void input.offsetWidth; // Reflow erzwingen, damit die Animation bei wiederholtem Fehler neu startet
+  input.classList.add("shake");
 }
 
 // ---------- Data loading ----------
 
 async function loadAll() {
+  state.offline = false;
+  state.loadProblems = [];
+  // Jede Quelle einzeln abgesichert: Fällt eine aus (oder fehlt das Netz),
+  // erscheint die App trotzdem, mit dem, was da ist.
   const [patterns, skills, research, theory, llProfile, entries, selfcare, crisis] = await Promise.all([
-    api("/api/patterns").then((r) => r.json()),
-    // Skills/Research separat abfangen: Fehlt die Tabelle noch (Migration nicht
-    // eingespielt), soll nur der jeweilige Tab leer bleiben statt die ganze App
-    // zu blockieren.
-    api("/api/skills").then((r) => (r.ok ? r.json() : [])).catch(() => []),
-    api("/api/research").then((r) => (r.ok ? r.json() : [])).catch(() => []),
-    api("/api/theory").then((r) => (r.ok ? r.json() : [])).catch(() => []),
-    api("/api/love-languages").then((r) => (r.ok ? r.json() : [])).catch(() => []),
-    api("/api/entries").then((r) => r.json()),
-    api("/api/selfcare").then((r) => r.json()),
-    api("/api/crisis").then((r) => r.json()),
+    loadJson("/api/patterns", []),
+    loadJson("/api/skills", []),
+    loadJson("/api/research", []),
+    loadJson("/api/theory", []),
+    loadJson("/api/love-languages", []),
+    loadJson("/api/entries", []),
+    loadJson("/api/selfcare", []),
+    loadJson("/api/crisis", { steps: [], contacts: [] }),
   ]);
   state.patterns = patterns;
   state.skills = skills;
@@ -242,7 +415,7 @@ function patternCard(p, i = 0) {
 }
 
 function renderWissen() {
-  if (!state.patterns.length) return `<div class="placeholder">Lädt Muster…</div>`;
+  if (!state.patterns.length) return placeholder("Muster", "/api/patterns");
 
   const byCategory = {};
   state.patterns.forEach((p) => {
@@ -313,7 +486,7 @@ function theoryCard(t, i = 0) {
 }
 
 function renderTheorie() {
-  if (!state.theory.length) return `<div class="placeholder">Lädt Theorie…</div>`;
+  if (!state.theory.length) return placeholder("Theorie-Karten", "/api/theory");
 
   const groups = THEORY_SECTIONS.map((sec) => {
     const inSection = state.theory.filter((t) => t.section === sec.id);
@@ -552,16 +725,16 @@ window.setLlNote = setLlNote;
 async function saveLl() {
   const person = state.ll.person;
   try {
-    const res = await api("/api/love-languages", {
+    await apiOk("/api/love-languages", {
       method: "PUT",
       body: JSON.stringify({ person, items: state.ll.draft[person] }),
     });
-    if (!res.ok) throw new Error();
     state.ll.saved[person] = true;
     state.ll.dirty[person] = false;
     state.ll.error = "";
-  } catch {
-    state.ll.error = "Speichern fehlgeschlagen. Ist die Migration 0015 schon eingespielt?";
+  } catch (e) {
+    if (e.unauthorized) return;
+    state.ll.error = `Nicht gespeichert: ${e.message}`;
   }
   redrawLlTool();
 }
@@ -629,7 +802,7 @@ function researchCard(r, i = 0) {
 }
 
 function renderForschung() {
-  if (!state.research.length) return `<div class="placeholder">Lädt Forschung…</div>`;
+  if (!state.research.length) return placeholder("Forschungskarten", "/api/research");
 
   const byCategory = {};
   state.research.forEach((r) => {
@@ -696,7 +869,7 @@ function skillCard(s, i = 0) {
 }
 
 function renderSkills() {
-  if (!state.skills.length) return `<div class="placeholder">Lädt Skills…</div>`;
+  if (!state.skills.length) return placeholder("Skills", "/api/skills");
 
   const stage = STAGES.find((st) => st.id === state.skillStage) || STAGES[0];
   const cards = state.skills.filter((s) => s.stage === stage.id);
@@ -838,7 +1011,13 @@ function renderLog() {
   return `
     ${renderLogForm()}
     ${missingLanguageSummary()}
-    ${state.entries.length ? state.entries.map((e, i) => entryCard(e, i)).join("") : `<div class="placeholder">Noch keine Einträge.</div>`}
+    ${
+      state.entries.length
+        ? state.entries.map((e, i) => entryCard(e, i)).join("")
+        : state.loadProblems.includes("/api/entries")
+          ? placeholder("Einträge", "/api/entries")
+          : `<div class="placeholder static">Noch keine Einträge.</div>`
+    }
   `;
 }
 
@@ -884,7 +1063,13 @@ function selfcareCard(s, i = 0) {
 function renderSelfcare() {
   return `
     ${renderSelfcareForm()}
-    ${state.selfcare.length ? state.selfcare.map((s, i) => selfcareCard(s, i)).join("") : `<div class="placeholder">Noch keine Einträge.</div>`}
+    ${
+      state.selfcare.length
+        ? state.selfcare.map((s, i) => selfcareCard(s, i)).join("")
+        : state.loadProblems.includes("/api/selfcare")
+          ? placeholder("Einträge", "/api/selfcare")
+          : `<div class="placeholder static">Noch keine Einträge.</div>`
+    }
   `;
 }
 
@@ -918,7 +1103,7 @@ function renderKrise() {
       `
             )
             .join("")
-        : `<div class="placeholder">Noch keine Schritte hinterlegt.</div>`
+        : `<div class="placeholder static">${state.loadProblems.includes("/api/crisis") ? "Noch kein gespeicherter Stand auf diesem Gerät." : "Noch keine Schritte hinterlegt."}</div>`
     }
     ${state.crisisEdit ? renderCrisisStepForm() : ""}
 
@@ -940,7 +1125,7 @@ function renderKrise() {
       `
             )
             .join("")
-        : `<div class="placeholder">Noch keine Kontakte hinterlegt.</div>`
+        : `<div class="placeholder static">${state.loadProblems.includes("/api/crisis") ? "Noch kein gespeicherter Stand auf diesem Gerät." : "Noch keine Kontakte hinterlegt."}</div>`
     }
     ${state.crisisEdit ? renderCrisisContactForm() : ""}
   `;
@@ -1055,23 +1240,48 @@ function updateLogField(field, value) {
 }
 window.updateLogField = updateLogField;
 
-async function submitEntry() {
-  const { occurred_at, note, mood_before, mood_after, pattern_ids, missing_languages } = state.logForm;
-  if (!occurred_at) return;
-  await api("/api/entries", {
-    method: "POST",
-    body: JSON.stringify({ occurred_at, note, mood_before, mood_after, pattern_ids, missing_languages }),
-  });
-  state.logForm = { occurred_at: nowLocal(), note: "", mood_before: null, mood_after: null, pattern_ids: [], missing_languages: [] };
-  state.entries = await api("/api/entries").then((r) => r.json());
-  rerender();
+// Nach dem Speichern die Liste neu holen. Scheitert das, ist der Eintrag
+// trotzdem gespeichert, deshalb hier kein Fehler nach außen.
+async function refreshList(path, key) {
+  try {
+    state[key] = await (await apiOk(path)).json();
+  } catch (e) {
+    if (e.unauthorized) throw e;
+  }
+}
+
+function submitEntry() {
+  return runAction(async () => {
+    const { occurred_at, note, mood_before, mood_after, pattern_ids, missing_languages } = state.logForm;
+    if (!occurred_at) throw new Error("Zeitpunkt fehlt");
+    await apiOk("/api/entries", {
+      method: "POST",
+      body: JSON.stringify({ occurred_at, note, mood_before, mood_after, pattern_ids, missing_languages }),
+    });
+    // Formular erst leeren, wenn der Server den Eintrag wirklich hat
+    state.logForm = { occurred_at: nowLocal(), note: "", mood_before: null, mood_after: null, pattern_ids: [], missing_languages: [] };
+    await refreshList("/api/entries", "entries");
+    rerender();
+    showToast("Eintrag gespeichert", "success");
+  }, "Eintrag nicht gespeichert, dein Text ist noch da");
 }
 window.submitEntry = submitEntry;
 
-async function deleteEntry(id) {
-  await api(`/api/entries?id=${id}`, { method: "DELETE" });
-  state.entries = state.entries.filter((e) => e.id !== id);
-  rerender();
+// Sortierung wie vom Server, damit ein wiederhergestellter Eintrag an der
+// richtigen Stelle landet
+const byEntryOrder = (a, b) => String(b.occurred_at).localeCompare(String(a.occurred_at));
+const bySelfcareOrder = (a, b) => String(b.date).localeCompare(String(a.date)) || b.id - a.id;
+const bySortOrder = (a, b) => a.sort_order - b.sort_order;
+
+function deleteEntry(id) {
+  const item = state.entries.find((e) => e.id === id);
+  if (!item) return;
+  deleteWithUndo({
+    label: "Eintrag",
+    remove: () => (state.entries = state.entries.filter((e) => e.id !== id)),
+    restore: () => (state.entries = [...state.entries, item].sort(byEntryOrder)),
+    commit: () => apiOk(`/api/entries?id=${id}`, { method: "DELETE", keepalive: true }),
+  });
 }
 window.deleteEntry = deleteEntry;
 
@@ -1081,20 +1291,28 @@ function updateSelfcareField(field, value) {
 }
 window.updateSelfcareField = updateSelfcareField;
 
-async function submitSelfcare() {
-  const { date, action, note } = state.selfcareForm;
-  if (!date || !action) return;
-  await api("/api/selfcare", { method: "POST", body: JSON.stringify({ date, action, note }) });
-  state.selfcareForm = { date: todayLocal(), action: SELFCARE_PRESETS[0], note: "" };
-  state.selfcare = await api("/api/selfcare").then((r) => r.json());
-  rerender();
+function submitSelfcare() {
+  return runAction(async () => {
+    const { date, action, note } = state.selfcareForm;
+    if (!date || !action) throw new Error("Datum oder Aktion fehlt");
+    await apiOk("/api/selfcare", { method: "POST", body: JSON.stringify({ date, action, note }) });
+    state.selfcareForm = { date: todayLocal(), action: SELFCARE_PRESETS[0], note: "" };
+    await refreshList("/api/selfcare", "selfcare");
+    rerender();
+    showToast("Eingetragen", "success");
+  }, "Nicht gespeichert");
 }
 window.submitSelfcare = submitSelfcare;
 
-async function deleteSelfcare(id) {
-  await api(`/api/selfcare?id=${id}`, { method: "DELETE" });
-  state.selfcare = state.selfcare.filter((s) => s.id !== id);
-  rerender();
+function deleteSelfcare(id) {
+  const item = state.selfcare.find((s) => s.id === id);
+  if (!item) return;
+  deleteWithUndo({
+    label: "Eintrag",
+    remove: () => (state.selfcare = state.selfcare.filter((s) => s.id !== id)),
+    restore: () => (state.selfcare = [...state.selfcare, item].sort(bySelfcareOrder)),
+    commit: () => apiOk(`/api/selfcare?id=${id}`, { method: "DELETE", keepalive: true }),
+  });
 }
 window.deleteSelfcare = deleteSelfcare;
 
@@ -1104,30 +1322,54 @@ function toggleCrisisEdit() {
 }
 window.toggleCrisisEdit = toggleCrisisEdit;
 
-async function submitCrisisStep() {
-  const title = document.getElementById("new-step-title").value.trim();
-  const description = document.getElementById("new-step-desc").value.trim();
-  if (!title) return;
-  await api("/api/crisis", { method: "POST", body: JSON.stringify({ kind: "step", title, description }) });
-  state.crisis = await api("/api/crisis").then((r) => r.json());
-  rerender();
+async function refreshCrisis() {
+  try {
+    state.crisis = await (await apiOk("/api/crisis")).json();
+    writeCache(OFFLINE_CACHE["/api/crisis"], state.crisis);
+  } catch (e) {
+    if (e.unauthorized) throw e;
+  }
+}
+
+function submitCrisisStep() {
+  return runAction(async () => {
+    const title = document.getElementById("new-step-title").value.trim();
+    const description = document.getElementById("new-step-desc").value.trim();
+    if (!title) throw new Error("Titel fehlt");
+    await apiOk("/api/crisis", { method: "POST", body: JSON.stringify({ kind: "step", title, description }) });
+    await refreshCrisis();
+    rerender();
+    showToast("Schritt hinzugefügt", "success");
+  }, "Nicht gespeichert");
 }
 window.submitCrisisStep = submitCrisisStep;
 
-async function submitCrisisContact() {
-  const label = document.getElementById("new-contact-label").value.trim();
-  const value = document.getElementById("new-contact-value").value.trim();
-  if (!label || !value) return;
-  await api("/api/crisis", { method: "POST", body: JSON.stringify({ kind: "contact", label, value }) });
-  state.crisis = await api("/api/crisis").then((r) => r.json());
-  rerender();
+function submitCrisisContact() {
+  return runAction(async () => {
+    const label = document.getElementById("new-contact-label").value.trim();
+    const value = document.getElementById("new-contact-value").value.trim();
+    if (!label || !value) throw new Error("Bezeichnung und Nummer/Info ausfüllen");
+    await apiOk("/api/crisis", { method: "POST", body: JSON.stringify({ kind: "contact", label, value }) });
+    await refreshCrisis();
+    rerender();
+    showToast("Kontakt hinzugefügt", "success");
+  }, "Nicht gespeichert");
 }
 window.submitCrisisContact = submitCrisisContact;
 
-async function deleteCrisisItem(kind, id) {
-  await api(`/api/crisis?kind=${kind}&id=${id}`, { method: "DELETE" });
-  state.crisis = await api("/api/crisis").then((r) => r.json());
-  rerender();
+function deleteCrisisItem(kind, id) {
+  const listKey = kind === "step" ? "steps" : "contacts";
+  const item = state.crisis[listKey].find((x) => x.id === id);
+  if (!item) return;
+  deleteWithUndo({
+    label: kind === "step" ? "Schritt" : "Kontakt",
+    remove: () => (state.crisis = { ...state.crisis, [listKey]: state.crisis[listKey].filter((x) => x.id !== id) }),
+    restore: () => (state.crisis = { ...state.crisis, [listKey]: [...state.crisis[listKey], item].sort(bySortOrder) }),
+    commit: async () => {
+      await apiOk(`/api/crisis?kind=${kind}&id=${id}`, { method: "DELETE", keepalive: true });
+      writeCache(OFFLINE_CACHE["/api/crisis"], state.crisis);
+    },
+  });
 }
 window.deleteCrisisItem = deleteCrisisItem;
 
@@ -1163,11 +1405,44 @@ function render() {
       <span class="brand">eggshells</span>
       <h1>${escapeHtml(TABS.find((t) => t.id === state.tab).title)}</h1>
     </header>
+    ${renderStatusBanner()}
     ${content}
     ${renderTabs()}
   `;
   state._lastRenderedTab = state.tab;
 }
+
+function renderStatusBanner() {
+  if (state.offline) {
+    return `
+      <div class="status-banner">
+        <strong>Keine Verbindung.</strong> Krisenplan und Skills zeigen den zuletzt geladenen Stand. Speichern geht gerade nicht.
+        <button class="link-btn" onclick="retryLoad()">Erneut versuchen</button>
+      </div>`;
+  }
+  if (state.loadProblems.length) {
+    return `
+      <div class="status-banner">
+        Einige Inhalte konnten nicht geladen werden.
+        <button class="link-btn" onclick="retryLoad()">Erneut versuchen</button>
+      </div>`;
+  }
+  return "";
+}
+
+async function retryLoad() {
+  try {
+    await loadAll();
+  } catch {
+    // 401: PIN-Bildschirm ist schon offen
+  }
+}
+window.retryLoad = retryLoad;
+
+// Verbindung ist zurück: still neu laden
+window.addEventListener("online", () => {
+  if (state.offline) retryLoad();
+});
 
 function setTab(id) {
   state.tab = id;
@@ -1180,10 +1455,11 @@ async function boot() {
   render();
   try {
     await loadAll();
-    hidePinScreen();
-  } catch {
-    // 401 already handled via api() -> showPinScreen()
+  } catch (e) {
+    // loadAll wirft nur bei 401; dann ist der PIN-Bildschirm schon offen
+    if (e.unauthorized) return;
   }
+  hidePinScreen();
 }
 
 document.getElementById("pin-submit").addEventListener("click", submitPin);
