@@ -2,7 +2,7 @@
 // Offline-Stand, deshalb kommt ein neues Deployment sofort an, ohne dass der
 // Cache-Name hochgezählt werden muss. Die Versionsnummer dient nur noch dazu,
 // alte Caches beim Aktivieren aufzuräumen.
-const CACHE_NAME = 'eggshells-shell-v11';
+const CACHE_NAME = 'eggshells-shell-v12';
 const SHELL_FILES = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const SHELL_FILES = [
   './icon-512.png',
   './favicon-32.png',
   './apple-touch-icon.png',
+  './fonts/outfit.woff2',
 ];
 
 // Bei sehr langsamem Netz nicht ewig warten, sondern nach ein paar Sekunden

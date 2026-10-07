@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
 <title>eggshells</title>
 <meta name="description" content="Wissen, Skills und Selbstfürsorge für Beziehungen mit PTBS/BPD-Dynamik" />
-<meta name="theme-color" content="#5c60a8" />
+<meta name="theme-color" content="#ece5da" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#15181a" media="(prefers-color-scheme: dark)" />
 <link rel="manifest" href="/manifest.json" />
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
 <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png" />
@@ -13,9 +14,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="eggshells" />
+<link rel="preload" href="/fonts/outfit.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
+<!-- Ruhige Hintergrund-Landschaft: treibende Farbflächen und Hügel -->
+<div class="ambient" aria-hidden="true">
+  <span class="blob b1"></span>
+  <span class="blob b2"></span>
+  <span class="blob b3"></span>
+  <span class="blob b4"></span>
+  <svg class="hills" viewBox="0 0 400 160" preserveAspectRatio="none">
+    <path class="hill h1" d="M0 86 C40 66 72 58 112 70 C152 82 172 48 212 44 C252 40 282 68 322 64 C352 61 380 50 400 54 V160 H0 Z" />
+    <path class="hill h2" d="M0 110 C50 94 92 98 132 106 C182 116 212 86 262 90 C302 93 342 108 400 96 V160 H0 Z" />
+    <path class="hill h3" d="M0 134 C60 122 110 128 160 134 C220 142 270 120 330 124 C360 126 385 132 400 130 V160 H0 Z" />
+  </svg>
+</div>
 <div id="pin-screen" class="pin-screen hidden">
   <div class="pin-box">
     <h1>eggshells</h1>

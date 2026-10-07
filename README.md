@@ -24,6 +24,8 @@ Cloudflare Pages + D1 (SQLite), Vanilla JS Frontend – gleiches Muster wie gym-
 - ✅ Quiz (unter "Verstehen"): Runden mit 10 Fragen, automatisch aus allen geladenen Karten erzeugt (Muster erkennen, "Hilft das oder eher nicht?", Skill-Phase, Skill zu einem Beispielsatz, Theorie-Konzept zu einer Alltagsszene, Autor:in, Evidenzgrad und Kernaussage einer Quelle). Filter nach Bereich, Auflösung mit Erklärung und Sprung zur Karte, "Falsche nochmal". Falsch beantwortete Fragen merkt sich das Gerät und stellt sie bevorzugt wieder. Neue Karten landen ohne Zutun im Quiz
 - ✅ Forschung: 7 Karten (Programme, Modelle, PTBS-spezifisch, Literatur, Anlaufstellen) mit Evidenz-Badge, Relevanz und Pflichtfeld Einschränkungen, `research`/`research_patterns`/`research_skills` (Migration `0011`), API `/api/research`, Tab mit Kategorie-Filter; Muster-/Skill-Karten zeigen "Belegt durch: …" mit Sprung zur Quelle
 
+- ✅ Design: warme, ruhige Farbwelt (Sand, Salbei, Nebelblau, Pfirsich), Milchglas-Karten über einer Hintergrund-Landschaft mit langsam treibenden Farbflächen und Hügeln, hervorgehobene Karten mit wanderndem Farbverlauf, schwebende Navigation, eigener Dunkelmodus (Abenddämmerung). Schrift Outfit, selbst gehostet in `src/fonts/` (SIL Open Font License, `src/fonts/OFL.txt`), damit sie auch offline da ist. Alle Bewegungen ruhen bei "Bewegung reduzieren" in den Systemeinstellungen
+
 ## Nächste Schritte
 - Log mit Skills verknüpfen: pro Eintrag festhalten, welcher Skill eingesetzt wurde und ob er gewirkt hat, damit sich zeigt, was in der Praxis wirklich funktioniert
 - Eigene Skills in der App anlegen/bearbeiten (analog zum Bearbeiten-Modus im Krisen-Tab), statt nur über Migrationen
