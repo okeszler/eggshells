@@ -19,6 +19,7 @@ const VERSTEHEN_VIEWS = [
   { id: "wissen", title: "Wissen" },
   { id: "theorie", title: "Theorie" },
   { id: "forschung", title: "Forschung" },
+  { id: "quiz", title: "Quiz" },
 ];
 
 const MOODS = [1, 2, 3, 4, 5];
@@ -60,6 +61,9 @@ let state = {
   // loadProblems = Pfade, die nicht geladen werden konnten
   offline: false,
   loadProblems: [],
+  // Quiz: Bereich auf dem Startbildschirm, laufende Runde (null = Start)
+  quizArea: "alle",
+  quiz: null,
 };
 
 function emptyLogForm() {
@@ -447,7 +451,7 @@ function crossRefs(researchHits = [], theoryHits = []) {
 
 function patternCard(p, i = 0) {
   return `
-    <div class="card"${staggerStyle(i)}>
+    <div class="card" id="pattern-${escapeHtml(p.slug)}"${staggerStyle(i)}>
       <span class="category">${escapeHtml(p.category)}</span>
       <h3>${escapeHtml(p.title)}</h3>
       <p class="summary">${escapeHtml(p.summary)}</p>
@@ -792,7 +796,7 @@ window.saveLl = saveLl;
 
 function renderVerstehen() {
   const view = VERSTEHEN_VIEWS.find((v) => v.id === state.verstehenView) || VERSTEHEN_VIEWS[0];
-  const inner = { wissen: renderWissen, theorie: renderTheorie, forschung: renderForschung }[view.id]();
+  const inner = { wissen: renderWissen, theorie: renderTheorie, forschung: renderForschung, quiz: renderQuiz }[view.id]();
   return `
     <div class="stage-switch view-switch" role="tablist">
       ${VERSTEHEN_VIEWS.map(
@@ -879,6 +883,393 @@ function renderForschung() {
   );
 }
 
+
+// ---------- Quiz ----------
+// Die Fragen werden bei jeder Runde frisch aus den geladenen Karten erzeugt.
+// Neue Muster, Skills, Theorie- oder Forschungskarten landen damit automatisch
+// im Quiz, ohne dass hier etwas gepflegt werden muss.
+
+const QUIZ_AREAS = [
+  { id: "alle", title: "Alles" },
+  { id: "muster", title: "Muster" },
+  { id: "skills", title: "Skills" },
+  { id: "theorie", title: "Theorie" },
+  { id: "forschung", title: "Forschung" },
+];
+const QUIZ_ROUND = 10;
+const QUIZ_MISSED_KEY = "eggshells-quiz-missed";
+
+function shuffle(list) {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pick(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function sentences(text) {
+  return String(text || "")
+    // Nur vor Großbuchstaben trennen, damit "bzw." oder "z. B." keinen Satz beenden
+    .split(/(?<![\s(][a-zA-Z]\.)(?<=[.!?]["“”]?)\s+(?=[A-ZÄÖÜ„"])/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 25);
+}
+
+function firstSentence(text) {
+  return sentences(text)[0] || String(text || "");
+}
+
+// Für "Hilft das?": nur die Handlung, ohne angehängte Begründung
+// ("… – das verstärkt …"), die die Antwort verraten würde
+function actionOnly(text) {
+  let cut = firstSentence(text).replace(/\s[–-]\s.*$/, "").replace(/[,;:]$/, "").trim();
+  if ((cut.match(/["„]/g) || []).length % 2) cut += '"';
+  return /[.!?"“]$/.test(cut) ? cut : cut + ".";
+}
+
+// Richtige Antwort plus bis zu drei andere, verschiedene Antworten, gemischt
+function quizOptions(correct, pool, count = 4) {
+  const others = shuffle([...new Set(pool)].filter((o) => o && o !== correct)).slice(0, count - 1);
+  const options = shuffle([correct, ...others]);
+  return { options, answer: options.indexOf(correct) };
+}
+
+function isIntroCard(t) {
+  return /^Einführung/.test(t.title);
+}
+
+// Jede Frage: key (stabil, für "falsch beantwortet"), area, prompt, quote,
+// options, answer (Index), explain, jump ({ fn, slug, label })
+function buildQuizQuestions() {
+  const qs = [];
+  const patterns = state.patterns;
+  const skills = state.skills;
+  const theory = state.theory;
+  const research = state.research;
+
+  patterns.forEach((p) => {
+    if (patterns.length >= 4 && p.recognize) {
+      qs.push({
+        key: `muster-erkennen:${p.slug}`,
+        area: "muster",
+        prompt: "Woran erkennst du das? Welches Muster steckt dahinter?",
+        quote: p.recognize,
+        ...quizOptions(p.title, patterns.map((x) => x.title)),
+        explain: p.summary,
+        jump: { fn: "jumpToPattern", slug: p.slug, label: "Zur Karte" },
+      });
+    }
+    const all = [
+      p.helps && { t: actionOnly(p.helps), helps: true },
+      p.avoid && { t: actionOnly(p.avoid), helps: false },
+    ].filter(Boolean);
+    if (all.length) {
+      const choice = pick(all);
+      const options = ["Hilft", "Hilft eher nicht"];
+      qs.push({
+        key: `muster-hilft:${p.slug}`,
+        area: "muster",
+        prompt: `Bei „${p.title}“: Hilft das oder eher nicht?`,
+        quote: choice.t,
+        options,
+        answer: choice.helps ? 0 : 1,
+        explain: choice.helps ? `Was hilft: ${p.helps}` : `Was nicht hilft: ${p.avoid}`,
+        jump: { fn: "jumpToPattern", slug: p.slug, label: "Zur Karte" },
+      });
+    }
+  });
+
+  skills.forEach((sk) => {
+    const stage = STAGES.find((st) => st.id === sk.stage);
+    if (stage) {
+      const options = STAGES.map((st) => st.title);
+      qs.push({
+        key: `skill-stufe:${sk.slug}`,
+        area: "skills",
+        prompt: `In welcher Phase setzt du „${sk.title}“ ein?`,
+        options,
+        answer: options.indexOf(stage.title),
+        explain: `${stage.title}: ${stage.intro}`,
+        jump: { fn: "jumpToSkill", slug: sk.slug, label: "Zum Skill" },
+      });
+    }
+    if (skills.length >= 4 && sk.example_phrases?.length) {
+      qs.push({
+        key: `skill-satz:${sk.slug}`,
+        area: "skills",
+        prompt: "Zu welchem Skill gehört dieser Satz?",
+        quote: `„${pick(sk.example_phrases)}“`,
+        ...quizOptions(sk.title, skills.map((x) => x.title)),
+        explain: firstSentence(sk.description),
+        jump: { fn: "jumpToSkill", slug: sk.slug, label: "Zum Skill" },
+      });
+    }
+  });
+
+  const concepts = theory.filter((t) => !isIntroCard(t));
+  const authors = [...new Set(theory.map((t) => t.author))];
+  concepts.forEach((t) => {
+    if (concepts.length >= 4 && t.everyday) {
+      // Andere Konzepte desselben Autors zuerst, damit die Frage nicht zu leicht ist
+      const sameAuthor = concepts.filter((x) => x.author === t.author && x.slug !== t.slug).map((x) => x.title);
+      const pool = sameAuthor.length >= 3 ? sameAuthor : concepts.map((x) => x.title);
+      qs.push({
+        key: `theorie-konzept:${t.slug}`,
+        area: "theorie",
+        prompt: "Welches Konzept ist hier im Alltag gemeint?",
+        quote: t.everyday,
+        ...quizOptions(t.title, pool),
+        explain: t.core,
+        jump: { fn: "jumpToTheory", slug: t.slug, label: "Zur Theorie" },
+      });
+    }
+    if (authors.length >= 2) {
+      const names = authors.map((a) => (AUTHOR_NAMES[a] || a).split(":")[0]);
+      const correct = (AUTHOR_NAMES[t.author] || t.author).split(":")[0];
+      qs.push({
+        key: `theorie-autor:${t.slug}`,
+        area: "theorie",
+        prompt: `Aus welcher Theorie stammt „${t.title}“?`,
+        ...quizOptions(correct, names),
+        explain: firstSentence(t.core),
+        jump: { fn: "jumpToTheory", slug: t.slug, label: "Zur Theorie" },
+      });
+    }
+  });
+
+  const levels = Object.keys(EVIDENCE_META);
+  research.forEach((r) => {
+    if (EVIDENCE_META[r.evidence_level]) {
+      const label = (l) => EVIDENCE_META[l].label;
+      qs.push({
+        key: `forschung-evidenz:${r.slug}`,
+        area: "forschung",
+        prompt: `Wie gut ist „${r.title}“ belegt?`,
+        ...quizOptions(label(r.evidence_level), levels.map(label)),
+        explain: `Einschränkungen: ${r.limitations}`,
+        jump: { fn: "jumpToResearch", slug: r.slug, label: "Zur Quelle" },
+      });
+    }
+    if (research.length >= 4 && r.key_insight) {
+      qs.push({
+        key: `forschung-kern:${r.slug}`,
+        area: "forschung",
+        prompt: "Welche Quelle ist das?",
+        quote: r.key_insight,
+        ...quizOptions(r.title, research.map((x) => x.title)),
+        explain: firstSentence(r.relevance),
+        jump: { fn: "jumpToResearch", slug: r.slug, label: "Zur Quelle" },
+      });
+    }
+  });
+
+  return qs.filter((q) => q.answer >= 0 && q.options.length >= 2);
+}
+
+// Falsch beantwortete Fragen merkt sich das Gerät und stellt sie bevorzugt
+// wieder, bis sie einmal richtig beantwortet sind.
+function readMissed() {
+  try {
+    const list = JSON.parse(localStorage.getItem(QUIZ_MISSED_KEY));
+    return new Set(Array.isArray(list) ? list : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeMissed(set) {
+  try {
+    localStorage.setItem(QUIZ_MISSED_KEY, JSON.stringify([...set]));
+  } catch {
+    // Speicher voll oder gesperrt: Quiz funktioniert trotzdem
+  }
+}
+
+function quizPool(area) {
+  const all = buildQuizQuestions();
+  return area === "alle" ? all : all.filter((q) => q.area === area);
+}
+
+function startQuiz(onlyKeys) {
+  const pool = quizPool(state.quizArea);
+  let questions;
+  if (onlyKeys) {
+    questions = shuffle(pool.filter((q) => onlyKeys.includes(q.key)));
+  } else {
+    const missed = readMissed();
+    // Bis zu drei Wiederholungen, der Rest neu gemischt
+    const again = shuffle(pool.filter((q) => missed.has(q.key))).slice(0, 3);
+    const fresh = shuffle(pool.filter((q) => !again.includes(q)));
+    questions = shuffle([...again, ...fresh.slice(0, QUIZ_ROUND - again.length)]);
+  }
+  if (!questions.length) return;
+  state.quiz = { questions, index: 0, picked: [] };
+  rerender();
+  window.scrollTo(0, 0);
+}
+window.startQuiz = startQuiz;
+
+function retryMissedQuiz() {
+  const q = state.quiz;
+  startQuiz(q.questions.filter((x, i) => q.picked[i] !== x.answer).map((x) => x.key));
+}
+window.retryMissedQuiz = retryMissedQuiz;
+
+function answerQuiz(i) {
+  const q = state.quiz;
+  if (!q || q.picked[q.index] !== undefined) return;
+  const question = q.questions[q.index];
+  q.picked[q.index] = i;
+  const missed = readMissed();
+  if (i === question.answer) missed.delete(question.key);
+  else missed.add(question.key);
+  writeMissed(missed);
+  // Ohne Übergang neu zeichnen: die Frage bleibt stehen, nur die Auflösung kommt dazu
+  render();
+}
+window.answerQuiz = answerQuiz;
+
+function nextQuiz() {
+  state.quiz.index++;
+  rerender();
+  window.scrollTo(0, 0);
+}
+window.nextQuiz = nextQuiz;
+
+function endQuiz() {
+  state.quiz = null;
+  rerender();
+  window.scrollTo(0, 0);
+}
+window.endQuiz = endQuiz;
+
+function setQuizArea(id) {
+  state.quizArea = id;
+  render();
+}
+window.setQuizArea = setQuizArea;
+
+function quizJump(question) {
+  const { fn, slug, label } = question.jump;
+  return `<button type="button" class="link-btn" onclick="${fn}('${escapeHtml(slug)}')">${escapeHtml(label)} →</button>`;
+}
+
+function renderQuizStart() {
+  const all = buildQuizQuestions();
+  if (!all.length) return placeholder("Quizfragen", "/api/patterns");
+  const missed = readMissed();
+  const count = (id) => (id === "alle" ? all : all.filter((q) => q.area === id));
+  const areas = QUIZ_AREAS.filter((a) => count(a.id).length);
+  const pool = count(state.quizArea);
+  const openMissed = pool.filter((q) => missed.has(q.key)).length;
+  return `
+    <div class="card quiz-start">
+      <h3>Wie gut kennst du die Inhalte?</h3>
+      <p class="summary">Eine Runde hat ${QUIZ_ROUND} Fragen, gemischt aus den Karten der App. Nach jeder Antwort siehst du die Auflösung und kannst zur passenden Karte springen.</p>
+      <div class="filter-chips quiz-areas">
+        ${areas
+          .map(
+            (a) => `<button class="filter-chip ${state.quizArea === a.id ? "selected" : ""}" onclick="setQuizArea('${a.id}')">${escapeHtml(a.title)} <span>${count(a.id).length}</span></button>`
+          )
+          .join("")}
+      </div>
+      ${openMissed ? `<p class="quiz-hint">${openMissed} ${openMissed === 1 ? "Frage" : "Fragen"} von früher noch offen, sie kommen bevorzugt wieder dran.</p>` : ""}
+      <button class="primary-btn quiz-go" onclick="startQuiz()">Runde starten</button>
+    </div>
+  `;
+}
+
+function renderQuizQuestion() {
+  const q = state.quiz;
+  const question = q.questions[q.index];
+  const picked = q.picked[q.index];
+  const answered = picked !== undefined;
+  const score = q.picked.filter((p, i) => p === q.questions[i].answer).length;
+  const last = q.index === q.questions.length - 1;
+  const progress = ((q.index + (answered ? 1 : 0)) / q.questions.length) * 100;
+
+  const option = (label, i) => {
+    let cls = "";
+    if (answered) {
+      if (i === question.answer) cls = "correct";
+      else if (i === picked) cls = "wrong";
+      else cls = "dim";
+    }
+    return `<button type="button" class="quiz-option ${cls}" onclick="answerQuiz(${i})" ${answered ? "disabled" : ""}>${escapeHtml(label)}</button>`;
+  };
+
+  return `
+    <div class="quiz-head">
+      <span>Frage ${q.index + 1} von ${q.questions.length}</span>
+      <span>${score} richtig</span>
+    </div>
+    <div class="quiz-progress"><div style="width:${progress}%"></div></div>
+    <div class="card quiz-card ${answered ? "answered" : ""}">
+      <span class="category">${escapeHtml(QUIZ_AREAS.find((a) => a.id === question.area)?.title || "")}</span>
+      <h3>${escapeHtml(question.prompt)}</h3>
+      ${question.quote ? `<blockquote class="quiz-quote">${escapeHtml(question.quote)}</blockquote>` : ""}
+      <div class="quiz-options ${question.options.length === 2 ? "two" : ""}">
+        ${question.options.map(option).join("")}
+      </div>
+      ${
+        answered
+          ? `
+        <div class="quiz-result ${picked === question.answer ? "ok" : "no"}">
+          <strong>${picked === question.answer ? "Richtig!" : `Nicht ganz. Richtig ist: ${escapeHtml(question.options[question.answer])}`}</strong>
+          <p>${escapeHtml(question.explain)}</p>
+          ${quizJump(question)}
+        </div>
+        <button class="primary-btn quiz-go" onclick="nextQuiz()">${last ? "Auswertung" : "Weiter"}</button>`
+          : ""
+      }
+    </div>
+    <button class="link-btn quiz-quit" onclick="endQuiz()">Runde abbrechen</button>
+  `;
+}
+
+function renderQuizSummary() {
+  const q = state.quiz;
+  const total = q.questions.length;
+  const wrong = q.questions.map((x, i) => ({ x, i })).filter(({ x, i }) => q.picked[i] !== x.answer);
+  const score = total - wrong.length;
+  const ratio = score / total;
+  const message =
+    ratio === 1 ? "Alles richtig. Stark!" : ratio >= 0.7 ? "Sehr gut, das sitzt schon." : ratio >= 0.4 ? "Ein guter Anfang." : "Jede Runde bringt dich weiter.";
+  return `
+    <div class="card quiz-summary">
+      <div class="quiz-score">${score}<span>/${total}</span></div>
+      <h3>${message}</h3>
+      ${
+        wrong.length
+          ? `<p class="summary">Zum Nachlesen:</p>
+        <ul class="quiz-review">
+          ${wrong
+            .map(
+              ({ x }) => `<li><span>${escapeHtml(x.prompt)}</span><strong>${escapeHtml(x.options[x.answer])}</strong>${quizJump(x)}</li>`
+            )
+            .join("")}
+        </ul>`
+          : ""
+      }
+      ${wrong.length ? `<button class="primary-btn quiz-go" onclick="retryMissedQuiz()">Falsche nochmal (${wrong.length})</button>` : ""}
+      <button class="primary-btn quiz-go ${wrong.length ? "secondary" : ""}" onclick="startQuiz()">Neue Runde</button>
+      <button class="link-btn quiz-quit" onclick="endQuiz()">Bereich wählen</button>
+    </div>
+  `;
+}
+
+function renderQuiz() {
+  const q = state.quiz;
+  if (!q) return renderQuizStart();
+  if (q.index >= q.questions.length) return renderQuizSummary();
+  return renderQuizQuestion();
+}
+
 // ---------- Skills ----------
 
 const STAGES = [
@@ -899,7 +1290,7 @@ const STAGES = [
 
 function skillCard(s, i = 0) {
   return `
-    <div class="card skill-card stage-${s.stage} skill-${escapeHtml(s.slug)}"${staggerStyle(i)}>
+    <div class="card skill-card stage-${s.stage} skill-${escapeHtml(s.slug)}" id="skill-${escapeHtml(s.slug)}"${staggerStyle(i)}>
       <h3>${escapeHtml(s.title)}</h3>
       <ul class="phrases">
         ${s.example_phrases.map((ph) => `<li>${escapeHtml(ph)}</li>`).join("")}
@@ -1230,6 +1621,22 @@ function jumpToTheory(slug) {
   rerender().then(() => scrollToAndHighlight("theory-" + slug));
 }
 window.jumpToTheory = jumpToTheory;
+
+function jumpToPattern(slug) {
+  state.tab = "verstehen";
+  state.verstehenView = "wissen";
+  state.wissenChapter = null;
+  rerender().then(() => scrollToAndHighlight("pattern-" + slug));
+}
+window.jumpToPattern = jumpToPattern;
+
+function jumpToSkill(slug) {
+  const skill = state.skills.find((s) => s.slug === slug);
+  state.tab = "skills";
+  if (skill) state.skillStage = skill.stage;
+  rerender().then(() => scrollToAndHighlight("skill-" + slug));
+}
+window.jumpToSkill = jumpToSkill;
 
 function setVerstehenView(id) {
   state.verstehenView = id;
