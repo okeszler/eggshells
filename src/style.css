@@ -57,9 +57,23 @@
   --blob-2: #c5d4de;
   --blob-3: #f0cfb8;
   --blob-4: #e9dcc2;
-  --hill-1: rgba(160, 174, 158, 0.32);
-  --hill-2: rgba(128, 148, 128, 0.3);
-  --hill-3: rgba(96, 118, 99, 0.26);
+
+  /* Ostsee-Dünen (oben) */
+  --sky-top: #dce6ea;
+  --sky-bottom: #f3e2d0;
+  --sun: #f7d9bd;
+  --glow: rgba(247, 205, 170, 0.75);
+  --sea-far: #a7bfc8;
+  --sea-near: #cbd8d6;
+  --wave: rgba(255, 255, 255, 0.7);
+  --glint: rgba(255, 246, 232, 0.95);
+  --dune-back: #e7d6ba;
+  --dune-front: #dcc6a2;
+  --beach: #efe3cc;
+  --grass: #8a9d78;
+  --grass-front: #75895f;
+  --fence: #8c7a63;
+  --gull: #6f747a;
 
   /* Sanfter Verlauf für hervorgehobene Karten */
   --feature-gradient: linear-gradient(125deg, rgba(214, 228, 210, 0.9), rgba(220, 230, 236, 0.85), rgba(244, 222, 204, 0.85), rgba(214, 228, 210, 0.9));
@@ -105,9 +119,23 @@
     --blob-2: #1f2f3b;
     --blob-3: #3a2a24;
     --blob-4: #2e2b22;
-    --hill-1: rgba(70, 92, 80, 0.3);
-    --hill-2: rgba(52, 72, 62, 0.4);
-    --hill-3: rgba(36, 52, 45, 0.5);
+
+    /* Abendstimmung: Mond statt Sonne */
+    --sky-top: #161c28;
+    --sky-bottom: #3a2f36;
+    --sun: #eadfc6;
+    --glow: rgba(234, 214, 180, 0.22);
+    --sea-far: #26343d;
+    --sea-near: #1d2529;
+    --wave: rgba(255, 255, 255, 0.12);
+    --glint: rgba(240, 226, 196, 0.55);
+    --dune-back: #36342e;
+    --dune-front: #2c2a25;
+    --beach: #3d3a33;
+    --grass: #5b6b51;
+    --grass-front: #4d5c44;
+    --fence: #6d6253;
+    --gull: #9a9ea6;
 
     --feature-gradient: linear-gradient(125deg, rgba(40, 60, 50, 0.85), rgba(34, 50, 62, 0.85), rgba(62, 46, 40, 0.85), rgba(40, 60, 50, 0.85));
   }
@@ -203,35 +231,133 @@ button {
   to { transform: translate(-18vw, 24vh) scale(1.1); }
 }
 
-.hills {
+/* ---------- Ostsee-Dünen oben ---------- */
+
+.dune-hero {
   position: absolute;
-  left: -10%;
-  bottom: 0;
-  width: 120%;
-  height: 42vh;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(300px + env(safe-area-inset-top));
+  z-index: -1;
+  pointer-events: none;
+  /* Unten weich in den Seitenhintergrund auslaufen */
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
 }
 
-.hill {
-  will-change: transform;
+.dunes {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.hill.h1 {
-  fill: var(--hill-1);
-  animation: sway 70s ease-in-out infinite alternate;
+.dunes .sky-top { stop-color: var(--sky-top); }
+.dunes .sky-bottom { stop-color: var(--sky-bottom); }
+.dunes .sea-far { stop-color: var(--sea-far); }
+.dunes .sea-near { stop-color: var(--sea-near); }
+.dunes .glow-in { stop-color: var(--glow); }
+.dunes .glow-out { stop-color: var(--glow); stop-opacity: 0; }
+
+.dunes .sky { opacity: 0.92; }
+.dunes .sun { fill: var(--sun); }
+.dunes .horizon { stroke: var(--glint); stroke-width: 0.8; opacity: 0.6; }
+.dunes .dune-back { fill: var(--dune-back); }
+.dunes .dune-front { fill: var(--dune-front); }
+.dunes .beach { fill: var(--beach); }
+.dunes .shore { fill: none; stroke: var(--wave); stroke-width: 1.4; animation: shore 9s ease-in-out infinite; }
+
+/* Auslaufende Welle am Strand */
+@keyframes shore {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50% { transform: translateY(2.5px); opacity: 1; }
+}
+.dunes .fence { stroke: var(--fence); stroke-width: 1.4; stroke-linecap: round; fill: none; }
+.dunes .fence-wire { stroke: var(--fence); stroke-width: 0.6; fill: none; opacity: 0.7; }
+
+.dunes .wave,
+.dunes .glint,
+.dunes .grass,
+.dunes .gull {
+  fill: none;
+  stroke-linecap: round;
 }
 
-.hill.h2 {
-  fill: var(--hill-2);
-  animation: sway 55s ease-in-out infinite alternate-reverse;
+.dunes .wave { stroke: var(--wave); stroke-width: 1; }
+.dunes .glint { stroke: var(--glint); stroke-width: 1.6; }
+.dunes .grass { stroke: var(--grass); stroke-width: 1.1; }
+.dunes .grass-front { stroke: var(--grass-front); stroke-width: 1.4; }
+.dunes .gull { stroke: var(--gull); stroke-width: 1.3; stroke-linejoin: round; }
+
+/* Sonne/Mond atmet langsam */
+.dunes .sun-glow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: glow-breathe 14s ease-in-out infinite;
 }
 
-.hill.h3 {
-  fill: var(--hill-3);
+@keyframes glow-breathe {
+  0%, 100% { transform: scale(0.92); opacity: 0.8; }
+  50% { transform: scale(1.06); opacity: 1; }
 }
 
-@keyframes sway {
-  from { transform: translateX(-2.5%); }
-  to { transform: translateX(2.5%); }
+/* Wellen ziehen ruhig zum Strand, jede Linie eigenes Tempo */
+.dunes .wave {
+  animation: wave-drift linear infinite;
+}
+
+.dunes .w1 { animation-duration: 26s; opacity: 0.6; }
+.dunes .w2 { animation-duration: 20s; animation-direction: reverse; opacity: 0.8; }
+.dunes .w3 { animation-duration: 15s; }
+
+@keyframes wave-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(40px); }
+}
+
+/* Glitzern auf dem Wasser */
+.dunes .glint {
+  animation: glint 4.5s ease-in-out infinite;
+}
+
+@keyframes glint {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+/* Strandhafer wiegt sich im Wind */
+.dunes .grass {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: grass-sway 8s ease-in-out infinite alternate;
+}
+
+@keyframes grass-sway {
+  from { transform: rotate(-4deg); }
+  to { transform: rotate(5deg); }
+}
+
+/* Zwei Möwen gleiten vorbei */
+.dunes .gulls {
+  animation: gulls-glide 70s ease-in-out infinite alternate;
+}
+
+.dunes .gull {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: gull-flap 3.2s ease-in-out infinite;
+}
+
+.dunes .g2 { animation-delay: -1.4s; }
+
+@keyframes gulls-glide {
+  from { transform: translate(-30px, 6px); }
+  to { transform: translate(150px, -8px); }
+}
+
+@keyframes gull-flap {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.55); }
 }
 
 /* ---------- Rahmen ---------- */
@@ -1664,7 +1790,7 @@ nav.tabs svg.just-activated {
   }
 
   .blob,
-  .hill,
+  .dunes *,
   .ll-tool,
   .quiz-start,
   .quiz-summary,
@@ -1676,5 +1802,170 @@ nav.tabs svg.just-activated {
   ::view-transition-old(*),
   ::view-transition-new(*) {
     animation: none !important;
+  }
+}
+
+/* ==========================================================================
+   Größere Bildschirme
+   ========================================================================== */
+
+/* Formular + Liste (Log, Fürsorge): am Handy einfach untereinander */
+.split-main > .missing-summary:first-child {
+  margin-top: 0;
+}
+
+/* Tablet: etwas breiter, sonst wie am Handy */
+@media (min-width: 640px) {
+  #app {
+    max-width: 680px;
+  }
+
+  nav.tabs {
+    max-width: 560px;
+  }
+}
+
+/* Monitor: Navigation links, Karten in zwei Spalten */
+@media (min-width: 1000px) {
+  #app {
+    --sidebar: 236px;
+    max-width: calc(1120px + var(--sidebar));
+    padding: 44px 48px 64px calc(var(--sidebar) + 48px);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 22px;
+    align-items: start;
+  }
+
+  /* Alles, was keine Karte ist (Überschriften, Umschalter, Hinweise), über die volle Breite */
+  #app > * {
+    grid-column: 1 / -1;
+  }
+
+  #app > .card {
+    grid-column: auto;
+    align-self: stretch;
+  }
+
+  .card {
+    margin-bottom: 22px;
+  }
+
+  .topbar {
+    margin: 0 4px 30px;
+  }
+
+  .topbar h1 {
+    font-size: 56px;
+  }
+
+  nav.tabs {
+    top: 44px;
+    bottom: auto;
+    left: max(24px, calc(50vw - (1120px + 236px + 96px) / 2 + 24px));
+    right: auto;
+    width: 212px;
+    max-width: none;
+    margin: 0;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px;
+  }
+
+  nav.tabs button {
+    flex: none;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 14px;
+    padding: 12px 16px;
+    font-size: 15px;
+    border-radius: 18px;
+  }
+
+  nav.tabs button:hover:not(.active) {
+    background: var(--accent-soft);
+  }
+
+  #app > .stage-switch {
+    max-width: 620px;
+  }
+
+  .filter-chips {
+    flex-wrap: wrap;
+    overflow: visible;
+    margin: 0 0 14px;
+    padding: 2px 0 6px;
+  }
+
+  .stage-intro {
+    max-width: 640px;
+  }
+
+  /* Quiz und Werkzeuge: eine ruhige, mittelbreite Spalte */
+  #app > .quiz-head,
+  #app > .quiz-progress,
+  #app > .quiz-card,
+  #app > .quiz-start,
+  #app > .quiz-summary,
+  #app > .quiz-quit {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: 760px;
+  }
+
+  #app > .quiz-quit {
+    justify-self: start;
+    margin: 8px 0 0;
+    text-align: center;
+  }
+
+  #app > .ll-tool {
+    grid-column: 1 / -1;
+  }
+
+  /* Log / Fürsorge: Formular links (bleibt beim Scrollen stehen), Einträge rechts */
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+
+  .split-side {
+    position: sticky;
+    top: 24px;
+  }
+
+  .toast {
+    bottom: 28px;
+    left: calc(50% + 118px);
+    max-width: 520px;
+  }
+
+  .dune-hero {
+    height: min(40vw, 560px);
+  }
+
+  /* Hover-Rückmeldung mit der Maus */
+  .filter-chip:hover:not(.selected),
+  .stage-btn:hover:not(.selected),
+  .quiz-option:hover:not(:disabled) {
+    background: var(--surface-strong);
+  }
+
+  .primary-btn:hover {
+    opacity: 0.88;
+  }
+}
+
+/* Sehr breite Monitore: drei Spalten */
+@media (min-width: 1600px) {
+  #app {
+    max-width: calc(1500px + var(--sidebar));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  nav.tabs {
+    left: max(24px, calc(50vw - (1500px + 236px + 96px) / 2 + 24px));
   }
 }

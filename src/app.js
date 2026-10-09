@@ -1451,9 +1451,13 @@ function formatDateTime(iso) {
   return d.toLocaleString("de-AT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+// Formular und Liste in zwei Spalten: am Handy untereinander, am Monitor
+// steht das Formular links und die Einträge rechts daneben.
 function renderLog() {
   return `
-    ${renderLogForm()}
+    <div class="split">
+    <div class="split-side">${renderLogForm()}</div>
+    <div class="split-main">
     ${missingLanguageSummary()}
     ${
       state.entries.length
@@ -1462,6 +1466,8 @@ function renderLog() {
           ? placeholder("Einträge", "/api/entries")
           : `<div class="placeholder static">Noch keine Einträge.</div>`
     }
+    </div>
+    </div>
   `;
 }
 
@@ -1506,7 +1512,9 @@ function selfcareCard(s, i = 0) {
 
 function renderSelfcare() {
   return `
-    ${renderSelfcareForm()}
+    <div class="split">
+    <div class="split-side">${renderSelfcareForm()}</div>
+    <div class="split-main">
     ${
       state.selfcare.length
         ? state.selfcare.map((s, i) => selfcareCard(s, i)).join("")
@@ -1514,6 +1522,8 @@ function renderSelfcare() {
           ? placeholder("Einträge", "/api/selfcare")
           : `<div class="placeholder static">Noch keine Einträge.</div>`
     }
+    </div>
+    </div>
   `;
 }
 
