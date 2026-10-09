@@ -217,21 +217,62 @@ button {
   mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
 }
 
+/* Bühne im Bildformat 2000:750, deckt den Kopfbereich ab wie object-fit: cover.
+   Am Handy ist nur ein Ausschnitt sichtbar: Zaun, Segelboot und Sonne (--hero-x). */
+.hero-stage {
+  --hero-x: 55%;
+  position: absolute;
+  top: 50%;
+  left: var(--hero-x);
+  width: max(100%, calc((var(--hero-h) + env(safe-area-inset-top)) * 2000 / 750));
+  aspect-ratio: 2000 / 750;
+  transform: translate(calc(var(--hero-x) * -1), -50%);
+}
+
+.hero-motion {
+  position: absolute;
+  inset: 0;
+  transform-origin: 62% 55%;
+  /* Ganz langsames Heranschweben, kaum merklich; das Funkeln schwebt mit */
+  animation: hero-drift 70s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
 .dune-hero picture,
-.dune-hero img {
+.dune-hero img,
+.sparkles {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
 }
 
-.dune-hero img {
-  object-fit: cover;
-  /* Am Handy ist nur ein Ausschnitt sichtbar: Zaun, Segelboot und Sonne */
-  object-position: 55% 50%;
-  transform-origin: 62% 55%;
-  /* Ganz langsames Heranschweben, kaum merklich */
-  animation: hero-drift 70s ease-in-out infinite alternate;
-  will-change: transform;
+/* Funkeln: pixelkleine Lichtpunkte, die kurz aufblitzen */
+.sparkles .sp {
+  fill: #fff8ea;
+  opacity: 0;
+  animation: sparkle 4s ease-in-out infinite;
+}
+
+.sparkles .sp-far {
+  fill-opacity: 0.6;
+}
+
+.sp-night {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sp-day { display: none; }
+  .sp-night { display: inline; }
+  .sparkles .sp { fill: #eef0ff; }
+}
+
+@keyframes sparkle {
+  0%, 42%, 100% { opacity: 0; }
+  50% { opacity: 0.95; }
+  58% { opacity: 0; }
 }
 
 @keyframes hero-drift {
@@ -1670,12 +1711,16 @@ nav.tabs svg.just-activated {
   }
 
   .blob,
-  .dune-hero img,
+  .hero-motion,
   .ll-tool,
   .quiz-start,
   .quiz-summary,
   .quiz-progress div {
     animation: none !important;
+  }
+
+  .sparkles {
+    display: none;
   }
 
   ::view-transition-group(*),
@@ -1827,8 +1872,8 @@ nav.tabs svg.just-activated {
     --hero-h: min(34vw, 480px);
   }
 
-  .dune-hero img {
-    object-position: 50% 50%;
+  .hero-stage {
+    --hero-x: 50%;
   }
 
   /* Hover-Rückmeldung mit der Maus */
