@@ -239,20 +239,6 @@ button {
   to { transform: scale(1.09) translate(-1.2%, 0.6%); }
 }
 
-/* Dunkelmodus: bis eine eigene Nacht-Version da ist, wird das Tagbild abgedunkelt */
-@media (prefers-color-scheme: dark) {
-  .dune-hero img {
-    filter: brightness(0.42) saturate(0.75) hue-rotate(-8deg);
-  }
-
-  .dune-hero::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to bottom, rgba(18, 22, 40, 0.45), rgba(40, 30, 50, 0.15));
-  }
-}
-
 /* ---------- Rahmen ---------- */
 
 #app {

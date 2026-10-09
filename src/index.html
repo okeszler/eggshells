@@ -25,10 +25,10 @@
   <span class="blob b3"></span>
   <span class="blob b4"></span>
 </div>
-<!-- Ostsee-Kopfbild oben auf der Seite, scrollt mit dem Inhalt weg.
-     Für die Nacht-Version: <source srcset="/img/ostsee-nacht.webp" media="(prefers-color-scheme: dark)"> in das picture-Element. -->
+<!-- Ostsee-Kopfbild oben auf der Seite, scrollt mit dem Inhalt weg; im Dunkelmodus die Nacht-Version -->
 <div class="dune-hero" aria-hidden="true">
   <picture>
+    <source srcset="/img/ostsee-nacht.webp" media="(prefers-color-scheme: dark)" />
     <img src="/img/ostsee-tag.webp" alt="" width="2000" height="750" decoding="async" fetchpriority="high" />
   </picture>
 </div>
