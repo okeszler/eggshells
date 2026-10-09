@@ -14,6 +14,8 @@
 
 :root {
   color-scheme: light;
+  /* Höhe des Kopfbilds; der Titel steht im Himmel, der Inhalt beginnt darunter */
+  --hero-h: 350px;
 
   --bg: #ece5da;
   --surface: rgba(255, 252, 247, 0.62);
@@ -58,22 +60,6 @@
   --blob-3: #f0cfb8;
   --blob-4: #e9dcc2;
 
-  /* Ostsee-Dünen (oben) */
-  --sky-top: #dce6ea;
-  --sky-bottom: #f3e2d0;
-  --sun: #f7d9bd;
-  --glow: rgba(247, 205, 170, 0.75);
-  --sea-far: #a7bfc8;
-  --sea-near: #cbd8d6;
-  --wave: rgba(255, 255, 255, 0.7);
-  --glint: rgba(255, 246, 232, 0.95);
-  --dune-back: #e7d6ba;
-  --dune-front: #dcc6a2;
-  --beach: #efe3cc;
-  --grass: #8a9d78;
-  --grass-front: #75895f;
-  --fence: #8c7a63;
-  --gull: #6f747a;
 
   /* Sanfter Verlauf für hervorgehobene Karten */
   --feature-gradient: linear-gradient(125deg, rgba(214, 228, 210, 0.9), rgba(220, 230, 236, 0.85), rgba(244, 222, 204, 0.85), rgba(214, 228, 210, 0.9));
@@ -120,22 +106,6 @@
     --blob-3: #3a2a24;
     --blob-4: #2e2b22;
 
-    /* Abendstimmung: Mond statt Sonne */
-    --sky-top: #161c28;
-    --sky-bottom: #3a2f36;
-    --sun: #eadfc6;
-    --glow: rgba(234, 214, 180, 0.22);
-    --sea-far: #26343d;
-    --sea-near: #1d2529;
-    --wave: rgba(255, 255, 255, 0.12);
-    --glint: rgba(240, 226, 196, 0.55);
-    --dune-back: #36342e;
-    --dune-front: #2c2a25;
-    --beach: #3d3a33;
-    --grass: #5b6b51;
-    --grass-front: #4d5c44;
-    --fence: #6d6253;
-    --gull: #9a9ea6;
 
     --feature-gradient: linear-gradient(125deg, rgba(40, 60, 50, 0.85), rgba(34, 50, 62, 0.85), rgba(62, 46, 40, 0.85), rgba(40, 60, 50, 0.85));
   }
@@ -231,133 +201,56 @@ button {
   to { transform: translate(-18vw, 24vh) scale(1.1); }
 }
 
-/* ---------- Ostsee-Dünen oben ---------- */
+/* ---------- Ostsee-Kopfbild ---------- */
 
 .dune-hero {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: calc(300px + env(safe-area-inset-top));
+  height: calc(var(--hero-h) + env(safe-area-inset-top));
   z-index: -1;
+  overflow: hidden;
   pointer-events: none;
   /* Unten weich in den Seitenhintergrund auslaufen */
-  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
 }
 
-.dunes {
+.dune-hero picture,
+.dune-hero img {
   display: block;
   width: 100%;
   height: 100%;
 }
 
-.dunes .sky-top { stop-color: var(--sky-top); }
-.dunes .sky-bottom { stop-color: var(--sky-bottom); }
-.dunes .sea-far { stop-color: var(--sea-far); }
-.dunes .sea-near { stop-color: var(--sea-near); }
-.dunes .glow-in { stop-color: var(--glow); }
-.dunes .glow-out { stop-color: var(--glow); stop-opacity: 0; }
-
-.dunes .sky { opacity: 0.92; }
-.dunes .sun { fill: var(--sun); }
-.dunes .horizon { stroke: var(--glint); stroke-width: 0.8; opacity: 0.6; }
-.dunes .dune-back { fill: var(--dune-back); }
-.dunes .dune-front { fill: var(--dune-front); }
-.dunes .beach { fill: var(--beach); }
-.dunes .shore { fill: none; stroke: var(--wave); stroke-width: 1.4; animation: shore 9s ease-in-out infinite; }
-
-/* Auslaufende Welle am Strand */
-@keyframes shore {
-  0%, 100% { transform: translateY(0); opacity: 0.5; }
-  50% { transform: translateY(2.5px); opacity: 1; }
-}
-.dunes .fence { stroke: var(--fence); stroke-width: 1.4; stroke-linecap: round; fill: none; }
-.dunes .fence-wire { stroke: var(--fence); stroke-width: 0.6; fill: none; opacity: 0.7; }
-
-.dunes .wave,
-.dunes .glint,
-.dunes .grass,
-.dunes .gull {
-  fill: none;
-  stroke-linecap: round;
+.dune-hero img {
+  object-fit: cover;
+  /* Am Handy ist nur ein Ausschnitt sichtbar: Zaun, Segelboot und Sonne */
+  object-position: 55% 50%;
+  transform-origin: 62% 55%;
+  /* Ganz langsames Heranschweben, kaum merklich */
+  animation: hero-drift 70s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
-.dunes .wave { stroke: var(--wave); stroke-width: 1; }
-.dunes .glint { stroke: var(--glint); stroke-width: 1.6; }
-.dunes .grass { stroke: var(--grass); stroke-width: 1.1; }
-.dunes .grass-front { stroke: var(--grass-front); stroke-width: 1.4; }
-.dunes .gull { stroke: var(--gull); stroke-width: 1.3; stroke-linejoin: round; }
-
-/* Sonne/Mond atmet langsam */
-.dunes .sun-glow {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: glow-breathe 14s ease-in-out infinite;
+@keyframes hero-drift {
+  from { transform: scale(1.02) translate(0, 0); }
+  to { transform: scale(1.09) translate(-1.2%, 0.6%); }
 }
 
-@keyframes glow-breathe {
-  0%, 100% { transform: scale(0.92); opacity: 0.8; }
-  50% { transform: scale(1.06); opacity: 1; }
-}
+/* Dunkelmodus: bis eine eigene Nacht-Version da ist, wird das Tagbild abgedunkelt */
+@media (prefers-color-scheme: dark) {
+  .dune-hero img {
+    filter: brightness(0.42) saturate(0.75) hue-rotate(-8deg);
+  }
 
-/* Wellen ziehen ruhig zum Strand, jede Linie eigenes Tempo */
-.dunes .wave {
-  animation: wave-drift linear infinite;
-}
-
-.dunes .w1 { animation-duration: 26s; opacity: 0.6; }
-.dunes .w2 { animation-duration: 20s; animation-direction: reverse; opacity: 0.8; }
-.dunes .w3 { animation-duration: 15s; }
-
-@keyframes wave-drift {
-  from { transform: translateX(0); }
-  to { transform: translateX(40px); }
-}
-
-/* Glitzern auf dem Wasser */
-.dunes .glint {
-  animation: glint 4.5s ease-in-out infinite;
-}
-
-@keyframes glint {
-  0%, 100% { opacity: 0.25; }
-  50% { opacity: 1; }
-}
-
-/* Strandhafer wiegt sich im Wind */
-.dunes .grass {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: grass-sway 8s ease-in-out infinite alternate;
-}
-
-@keyframes grass-sway {
-  from { transform: rotate(-4deg); }
-  to { transform: rotate(5deg); }
-}
-
-/* Zwei Möwen gleiten vorbei */
-.dunes .gulls {
-  animation: gulls-glide 70s ease-in-out infinite alternate;
-}
-
-.dunes .gull {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: gull-flap 3.2s ease-in-out infinite;
-}
-
-.dunes .g2 { animation-delay: -1.4s; }
-
-@keyframes gulls-glide {
-  from { transform: translate(-30px, 6px); }
-  to { transform: translate(150px, -8px); }
-}
-
-@keyframes gull-flap {
-  0%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(0.55); }
+  .dune-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(18, 22, 40, 0.45), rgba(40, 30, 50, 0.15));
+  }
 }
 
 /* ---------- Rahmen ---------- */
@@ -369,7 +262,8 @@ button {
 }
 
 .topbar {
-  margin: 6px 4px 22px;
+  /* Platz lassen, damit das Kopfbild zwischen Titel und Inhalt sichtbar bleibt */
+  margin: 6px 4px calc(var(--hero-h) - 214px);
 }
 
 .topbar .brand {
@@ -1790,7 +1684,7 @@ nav.tabs svg.just-activated {
   }
 
   .blob,
-  .dunes *,
+  .dune-hero img,
   .ll-tool,
   .quiz-start,
   .quiz-summary,
@@ -1852,7 +1746,7 @@ nav.tabs svg.just-activated {
   }
 
   .topbar {
-    margin: 0 4px 30px;
+    margin: 0 4px calc(var(--hero-h) - 236px);
   }
 
   .topbar h1 {
@@ -1942,8 +1836,13 @@ nav.tabs svg.just-activated {
     max-width: 520px;
   }
 
+  #app,
   .dune-hero {
-    height: min(40vw, 560px);
+    --hero-h: min(34vw, 480px);
+  }
+
+  .dune-hero img {
+    object-position: 50% 50%;
   }
 
   /* Hover-Rückmeldung mit der Maus */

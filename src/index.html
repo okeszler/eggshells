@@ -25,72 +25,12 @@
   <span class="blob b3"></span>
   <span class="blob b4"></span>
 </div>
-<!-- Ostsee-Dünen oben auf der Seite, scrollt mit dem Inhalt weg -->
+<!-- Ostsee-Kopfbild oben auf der Seite, scrollt mit dem Inhalt weg.
+     Für die Nacht-Version: <source srcset="/img/ostsee-nacht.webp" media="(prefers-color-scheme: dark)"> in das picture-Element. -->
 <div class="dune-hero" aria-hidden="true">
-  <svg class="dunes" viewBox="0 0 800 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-    <defs>
-      <linearGradient id="dune-sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" class="sky-top" />
-        <stop offset="1" class="sky-bottom" />
-      </linearGradient>
-      <linearGradient id="dune-sea" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" class="sea-far" />
-        <stop offset="1" class="sea-near" />
-      </linearGradient>
-      <radialGradient id="dune-glow">
-        <stop offset="0" class="glow-in" />
-        <stop offset="1" class="glow-out" />
-      </radialGradient>
-    </defs>
-    <rect class="sky" width="800" height="172" fill="url(#dune-sky)" />
-    <circle class="sun-glow" cx="470" cy="166" r="110" fill="url(#dune-glow)" />
-    <circle class="sun" cx="470" cy="168" r="22" />
-    <g class="gulls">
-      <path class="gull g1" d="M500 46 q5 -5 10 0 q5 -5 10 0" />
-      <path class="gull g2" d="M526 60 q4 -4 8 0 q4 -4 8 0" />
-    </g>
-    <rect class="sea" y="168" width="800" height="132" fill="url(#dune-sea)" />
-    <path class="horizon" d="M0 168.5 H800" />
-    <g class="sun-path">
-      <path class="glint" style="animation-delay:0.0s" d="M460.0 175 h20" />
-      <path class="glint" style="animation-delay:0.9s" d="M450.0 182 h28" />
-      <path class="glint" style="animation-delay:1.8s" d="M466.0 189 h16" />
-      <path class="glint" style="animation-delay:2.7s" d="M453.0 197 h30" />
-      <path class="glint" style="animation-delay:3.6s" d="M465.0 205 h22" />
-    </g>
-    <g class="waves">
-      <path class="wave w1" d="M-40 178 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0 q10 -1.0 20 0 t20 0" />
-      <path class="wave w2" d="M-40 190 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0 q10 -1.5 20 0 t20 0" />
-      <path class="wave w3" d="M-40 204 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0 q10 -2.0 20 0 t20 0" />
-      <path class="wave w3" d="M-40 219 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0 q10 -2.6 20 0 t20 0" />
-    </g>
-    <path class="beach" d="M0 238 C200 231 500 233 800 229 V300 H0 Z" />
-    <path class="shore" d="M0 238 C200 231 500 233 800 229" />
-    <path class="dune dune-back" d="M0 198 C80 186 160 176 250 178 C340 180 410 212 520 236 L520 300 L0 300 Z" />
-    <path class="dune dune-back" d="M800 204 C762 194 722 190 684 194 C654 198 632 214 604 234 L604 300 L800 300 Z" />
-    <path class="fence" d="M327.2 189.9 v-9 M345.1 193.7 v-8.4 M363 198 v-7.8 M381.1 202.7 v-7.2 M399.6 207.8 v-6.6 M418.5 213 v-6 M438.1 218.4 v-5.4 M458.3 223.9 v-4.8 M666.8 200.8 v-9 M656.8 204.4 v-8.4 M647.1 209 v-7.8 M637.5 214.3 v-7.2 M628 220.3 v-6.6" />
-    <path class="fence-wire" d="M327.2 183.1 Q336.2 186.9 345.1 187.4 Q354 191.4 363 192.2 Q372.1 196.3 381.1 197.3 Q390.4 201.7 399.6 202.8 Q409.1 207.3 418.5 208.5 Q428.3 213.1 438.1 214.4 Q448.2 219 458.3 220.3 M666.8 194 Q661.8 197.7 656.8 198.1 Q651.9 202.2 647.1 203.1 Q642.3 207.6 637.5 208.9 Q632.7 213.7 628 215.3" />
-    <g transform="translate(146.2 182.7)"><path class="grass" style="animation-duration:6.6s;animation-delay:-1.9s" d="M-2.2 0 q-1 -7.3 -4.8 -12.2 M-1.1 0 q-0.3 -5.5 -1.5 -9.2 M0 0 q0 -5.4 0.1 -9 M1.1 0 q-0.1 -5.5 -0.7 -9.2" /></g>
-    <g transform="translate(210.1 179.9)"><path class="grass" style="animation-duration:7.7s;animation-delay:-0.5s" d="M-2.2 0 q1 -7.7 5 -12.8 M-1.1 0 q0.2 -5.5 0.9 -9.2 M0 0 q0.2 -5.5 1 -9.1 M1.1 0 q-0.6 -7.4 -3.1 -12.4" /></g>
-    <g transform="translate(263.4 180.5)"><path class="grass" style="animation-duration:7.7s;animation-delay:-0.8s" d="M-2.2 0 q0.2 -7.4 0.8 -12.4 M-1.1 0 q0.4 -5.7 2 -9.5 M0 0 q0.2 -6 0.8 -10 M1.1 0 q-0.9 -8 -4.5 -13.4" /></g>
-    <g transform="translate(307.1 185.3)"><path class="grass" style="animation-duration:8.5s;animation-delay:-3.4s" d="M-3.9 0 q0.4 -6.9 2 -11.5 M-2.8 0 q-0.4 -7.5 -2.1 -12.5 M-1.7 0 q-0.1 -6.4 -0.5 -10.7 M-0.6 0 q0.7 -8 3.3 -13.3 M0.6 0 q-0.6 -7.5 -2.9 -12.5 M1.7 0 q0.1 -8.6 0.3 -14.4 M2.8 0 q0.5 -6.4 2.6 -10.6" /></g>
-    <g transform="translate(352.2 194.4)"><path class="grass" style="animation-duration:6.5s;animation-delay:-5.9s" d="M-3.9 0 q-0.8 -6.6 -3.8 -11 M-2.8 0 q1 -6.9 4.9 -11.5 M-1.7 0 q1 -5.6 5.2 -9.3 M-0.6 0 q0.1 -8.3 0.7 -13.9 M0.6 0 q0.7 -6.6 3.6 -11 M1.7 0 q-0.3 -7.2 -1.7 -12 M2.8 0 q0.7 -5.5 3.3 -9.2" /></g>
-    <g transform="translate(408.6 209.3)"><path class="grass" style="animation-duration:7.1s;animation-delay:-0.6s" d="M-2.2 0 q-1 -8 -4.9 -13.3 M-1.1 0 q0.3 -9.1 1.6 -15.2 M0 0 q0.7 -6.4 3.6 -10.6 M1.1 0 q-0.3 -7.8 -1.3 -13.1" /></g>
-    <g transform="translate(753.7 197)"><path class="grass" style="animation-duration:7.8s;animation-delay:-0.1s" d="M-2.8 0 q0.2 -7.2 1.2 -12 M-1.7 0 q-0.6 -6.4 -3.2 -10.6 M-0.6 0 q0.5 -6.8 2.7 -11.3 M0.6 0 q0.9 -7.2 4.7 -12 M1.7 0 q-0.7 -6.8 -3.7 -11.4" /></g>
-    <g transform="translate(707 194.5)"><path class="grass" style="animation-duration:6.5s;animation-delay:-1.7s" d="M-3.9 0 q0.8 -6.3 4.1 -10.6 M-2.8 0 q-0.2 -6.7 -0.9 -11.1 M-1.7 0 q0.9 -9 4.3 -14.9 M-0.6 0 q-0.8 -6 -3.9 -9.9 M0.6 0 q-0.6 -6.2 -3 -10.3 M1.7 0 q-0 -7.5 -0.2 -12.6 M2.8 0 q-0.5 -5.3 -2.7 -8.8" /></g>
-    <g transform="translate(671 198.6)"><path class="grass" style="animation-duration:7.5s;animation-delay:-2.5s" d="M-3.4 0 q1 -7.9 5.1 -13.2 M-2.2 0 q0 -7.7 0.2 -12.8 M-1.1 0 q0.4 -5.5 2 -9.1 M0 0 q0.9 -8.3 4.5 -13.8 M1.1 0 q0.8 -8.3 4.2 -13.9 M2.2 0 q-0.2 -6.8 -1.2 -11.4" /></g>
-    <path class="dune dune-front" d="M0 262 C100 246 220 250 330 268 C380 276 410 290 430 300 L0 300 Z" />
-    <path class="dune dune-front" d="M800 268 C740 260 680 264 640 280 C620 288 610 296 606 300 L800 300 Z" />
-    <g transform="translate(107.6 255.3)"><path class="grass grass-front" style="animation-duration:7.5s;animation-delay:-0.6s" d="M-4.4 0 q1.7 -10.9 8.5 -18.2 M-2.6 0 q-1.4 -11.9 -6.8 -19.8 M-0.9 0 q-1.4 -11.7 -7 -19.4 M0.9 0 q0.1 -13.9 0.6 -23.2 M2.6 0 q0.4 -8.7 2 -14.5" /></g>
-    <g transform="translate(155.6 255.1)"><path class="grass grass-front" style="animation-duration:6.5s;animation-delay:-1.2s" d="M-6.1 0 q0.4 -11.1 1.8 -18.5 M-4.4 0 q-1.3 -11.2 -6.7 -18.6 M-2.6 0 q1.7 -11.1 8.4 -18.6 M-0.9 0 q-0.7 -9.1 -3.3 -15.2 M0.9 0 q0.9 -12.7 4.4 -21.2 M2.6 0 q-0.1 -12.4 -0.4 -20.7 M4.4 0 q0.1 -9.5 0.3 -15.8" /></g>
-    <g transform="translate(196.6 256.5)"><path class="grass grass-front" style="animation-duration:6.4s;animation-delay:-5.7s" d="M-4.4 0 q0.9 -10 4.5 -16.7 M-2.6 0 q0.5 -8.8 2.5 -14.7 M-0.9 0 q1.2 -11.4 6 -18.9 M0.9 0 q1.4 -10.4 7.1 -17.3 M2.6 0 q-1 -11.5 -4.9 -19.2" /></g>
-    <g transform="translate(236.8 259.3)"><path class="grass grass-front" style="animation-duration:7.5s;animation-delay:-3.0s" d="M-5.2 0 q1.1 -13.2 5.4 -21.9 M-3.5 0 q0.8 -9.6 4.2 -16 M-1.7 0 q0.1 -10.4 0.3 -17.3 M0 0 q-1.6 -8.4 -8.2 -14 M1.8 0 q-0.8 -9.8 -3.9 -16.3 M3.5 0 q0.7 -14 3.4 -23.3" /></g>
-    <g transform="translate(280.5 263.5)"><path class="grass grass-front" style="animation-duration:8.7s;animation-delay:-2.7s" d="M-6.1 0 q-1.5 -8.9 -7.3 -14.8 M-4.4 0 q-0.1 -10.3 -0.5 -17.1 M-2.6 0 q-0.1 -14.2 -0.3 -23.6 M-0.9 0 q0.4 -8.3 1.9 -13.8 M0.9 0 q1.4 -10.3 7.2 -17.2 M2.6 0 q0.5 -13.3 2.5 -22.1 M4.4 0 q-1.3 -10.6 -6.7 -17.6" /></g>
-    <g transform="translate(316.5 268.4)"><path class="grass grass-front" style="animation-duration:5.8s;animation-delay:-4.3s" d="M-7 0 q1 -10.2 5.1 -17.1 M-5.2 0 q1.1 -14.1 5.3 -23.5 M-3.5 0 q-0.4 -10.7 -1.8 -17.8 M-1.8 0 q1.6 -12.6 7.8 -21 M0 0 q-1.2 -9 -5.8 -15 M1.8 0 q-1.2 -13.7 -6.1 -22.8 M3.5 0 q1.1 -9.1 5.4 -15.2 M5.2 0 q1.1 -14.1 5.7 -23.6" /></g>
-    <g transform="translate(764.5 267.6)"><path class="grass grass-front" style="animation-duration:6.4s;animation-delay:-3.9s" d="M-5.2 0 q-1.7 -13 -8.4 -21.7 M-3.5 0 q0.8 -8.9 4 -14.8 M-1.7 0 q0.9 -9.1 4.4 -15.1 M0 0 q1.7 -9.4 8.5 -15.7 M1.8 0 q1.3 -8.4 6.5 -14 M3.5 0 q-1 -11.3 -5 -18.8" /></g>
-    <g transform="translate(721.2 267.5)"><path class="grass grass-front" style="animation-duration:6.3s;animation-delay:-4.6s" d="M-5.2 0 q-1.5 -12.7 -7.7 -21.1 M-3.5 0 q1.4 -12.2 7 -20.4 M-1.7 0 q1.1 -11.4 5.5 -18.9 M0 0 q1.1 -13.5 5.7 -22.5 M1.8 0 q-1.3 -9.2 -6.5 -15.3 M3.5 0 q0 -13.5 0.2 -22.5" /></g>
-    <g transform="translate(683.1 271.8)"><path class="grass grass-front" style="animation-duration:7.4s;animation-delay:-4.7s" d="M-5.2 0 q-1.1 -11.1 -5.7 -18.5 M-3.5 0 q0.8 -11.6 3.9 -19.3 M-1.7 0 q-0.6 -11.4 -3 -18.9 M0 0 q0.2 -13 1 -21.6 M1.8 0 q-1.4 -11.6 -6.9 -19.4 M3.5 0 q-0.9 -9.9 -4.4 -16.5" /></g>
-  </svg>
+  <picture>
+    <img src="/img/ostsee-tag.webp" alt="" width="2000" height="750" decoding="async" fetchpriority="high" />
+  </picture>
 </div>
 <div id="pin-screen" class="pin-screen hidden">
   <div class="pin-box">
